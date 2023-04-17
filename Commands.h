@@ -23,12 +23,12 @@ class BuiltInCommand : public Command {
   virtual ~BuiltInCommand() {}
 };
 
-class ExternalCommand : public Command {
- public:
-  ExternalCommand(const char* cmd_line);
-  virtual ~ExternalCommand() {}
-  void execute() override;
-};
+//class ExternalCommand : public Command {
+// public:
+//  ExternalCommand(const char* cmd_line);
+//  virtual ~ExternalCommand() {}
+//  void execute() override;
+//};
 
 class PipeCommand : public Command {
   // TODO: Add your data members
@@ -50,9 +50,16 @@ class RedirectionCommand : public Command {
 
 class ChangeDirCommand : public BuiltInCommand {
 // TODO: Add your data members public:
-  ChangeDirCommand(const char* cmd_line, char** plastPwd);
+public:
+  ChangeDirCommand(const char *cmd_line);
   virtual ~ChangeDirCommand() {}
   void execute() override;
+
+
+private:
+    std::string requestedDir;
+
+
 };
 
 class GetCurrDirCommand : public BuiltInCommand {
@@ -67,6 +74,18 @@ class ShowPidCommand : public BuiltInCommand {
   ShowPidCommand(const char* cmd_line);
   virtual ~ShowPidCommand() {}
   void execute() override;
+};
+
+class changePromptCommand : public BuiltInCommand{
+public:
+    changePromptCommand(const char* cmd_line);
+    virtual ~changePromptCommand(){}
+    void execute() override;
+
+private:
+    std::string plastPrompt;
+
+
 };
 
 class JobsList;
@@ -179,6 +198,13 @@ class SmallShell {
     return instance;
   }
   ~SmallShell();
+  static bool isChpromptNeeded;
+  static std::string toChangePrompt;
+  static char* lastWorkingDirectory;
+  static bool isLastDirectoryExist;
+
+
+
   void executeCommand(const char* cmd_line);
   // TODO: add extra methods as needed
 };

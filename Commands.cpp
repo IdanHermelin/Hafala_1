@@ -3,7 +3,7 @@
 #include <iostream>
 #include <vector>
 #include <sstream>
-#include <sys/wait.h>
+//#include <sys/wait.h>
 #include <iomanip>
 #include "Commands.h"
 
@@ -22,7 +22,7 @@ const std::string WHITESPACE = " \n\r\t\f\v";
 #define FUNC_EXIT()
 #endif
 
-string _ltrim(const std::string& s)
+string _ltrim(const std::string& s) // returns the string without any initial spaces
 {
   size_t start = s.find_first_not_of(WHITESPACE);
   return (start == std::string::npos) ? "" : s.substr(start);
@@ -68,7 +68,7 @@ void _removeBackgroundSign(char* cmd_line) {
     return;
   }
   // if the command line does not end with & then return
-  if (cmd_line[idx] != '&') {
+  if (cmd_line[idx] != '&'){
     return;
   }
   // replace the & (background sign) with space and then remove all tailing spaces.
@@ -86,13 +86,18 @@ SmallShell::SmallShell() {
 SmallShell::~SmallShell() {
 // TODO: add your implementation
 }
+Command::Command(const char *cmd_line) {
 
+}
+Command::~Command() noexcept {
+
+}
 /**
 * Creates and returns a pointer to Command class which matches the given command line (cmd_line)
 */
 Command * SmallShell::CreateCommand(const char* cmd_line) {
 	// For example:
-/*
+
   string cmd_s = _trim(string(cmd_line));
   string firstWord = cmd_s.substr(0, cmd_s.find_first_of(" \n"));
 
@@ -102,19 +107,132 @@ Command * SmallShell::CreateCommand(const char* cmd_line) {
   else if (firstWord.compare("showpid") == 0) {
     return new ShowPidCommand(cmd_line);
   }
-  else if ...
-  .....
-  else {
-    return new ExternalCommand(cmd_line);
+  else if (firstWord.compare("cd") == 0) {
+
+      return new ChangeDirCommand(cmd_line);
   }
-  */
+  else if (firstWord.compare("chprompt") == 0){
+      return new changePromptCommand(cmd_line);
+  }
+//  else {
+//    return new ExternalCommand(cmd_line);
+//  }
+
   return nullptr;
 }
 
 void SmallShell::executeCommand(const char *cmd_line) {
   // TODO: Add your implementation here
-  // for example:
-  // Command* cmd = CreateCommand(cmd_line);
-  // cmd->execute();
-  // Please note that you must fork smash process for some commands (e.g., external commands....)
+
+   Command* cmd = CreateCommand(cmd_line);
+   cmd->execute();
+//  Please note that you must fork smash process for some commands (e.g., external commands....)
 }
+//ExternalCommand::ExternalCommand(const char *cmd_line): Command(cmd_line)
+//{
+//
+//}
+
+
+ChangeDirCommand::ChangeDirCommand(const char *cmd_line): BuiltInCommand(cmd_line)
+{
+
+    string cmd_s = _trim(string(cmd_line));
+    size_t middle = cmd_s.find_first_of(WHITESPACE);
+    string afterCDLine = cmd_s.substr(middle+1);
+    afterCDLine = _trim(afterCDLine);
+    size_t isMoreThan2Argues = afterCDLine.find_first_of(" ");
+    if (isMoreThan2Argues != string::npos){
+        cerr << "smash error: cd: too many arguments" <<endl;
+    }
+    this->requestedDir = afterCDLine.substr(0, afterCDLine.find_first_of(WHITESPACE));
+
+}
+void ChangeDirCommand::execute() {
+
+    if(this->requestedDir.compare("-")!=0){
+        char cwd[1024];
+        getcwd(cwd,sizeof(cwd));
+        char* plastPwd = new char[this->requestedDir.length() + 1];
+        strcpy(plastPwd, this->requestedDir.c_str());
+
+        if (chdir(plastPwd)) {
+
+            perror("smash error: cd failed");
+        }
+        else{
+            for (int i=0;i<1024; i++){
+                SmallShell::lastWorkingDirectory[i] = cwd[i];
+            }
+            SmallShell::isLastDirectoryExist = true;
+        }
+    }
+    else{
+        if(!SmallShell::isLastDirectoryExist){
+            perror("smash error: cd: OLDPWD not set");
+        }
+        else{
+            char cwd[1024];
+            getcwd(cwd,sizeof(cwd));
+            chdir(SmallShell::lastWorkingDirectory);
+            for (int i=0;i<1024; i++){
+                SmallShell::lastWorkingDirectory[i] = cwd[i];
+            }
+        }
+    }
+
+}
+
+GetCurrDirCommand::GetCurrDirCommand(const char *cmd_line): BuiltInCommand(cmd_line)
+{
+
+}
+void GetCurrDirCommand::execute() {
+
+    char workingDirectory[1024];
+    getcwd(workingDirectory, sizeof(workingDirectory));
+    cout << workingDirectory << endl;
+}
+
+ShowPidCommand::ShowPidCommand(const char *cmd_line): BuiltInCommand(cmd_line)
+{
+
+}
+
+void ShowPidCommand::execute() {
+    pid_t pid = getpid();
+    cout << "smash pid is " << pid << endl;
+}
+
+
+changePromptCommand::changePromptCommand(const char *cmd_line): BuiltInCommand(cmd_line)
+{
+    string cmd_s = _trim(string(cmd_line));
+    size_t middle = cmd_s.find_first_of(WHITESPACE);
+    string afterCHLine = cmd_s.substr(middle+1);
+    afterCHLine = _ltrim(afterCHLine);
+    this->plastPrompt = afterCHLine.substr(0, afterCHLine.find_first_of(" \n"));
+
+}
+void changePromptCommand::execute()
+{
+    if(this->plastPrompt.compare("chprompt") == 0){
+        SmallShell::isChpromptNeeded = false;
+    }
+    else{
+        SmallShell::isChpromptNeeded = true;
+        SmallShell::toChangePrompt = this->plastPrompt;
+    }
+
+}
+bool SmallShell::isLastDirectoryExist = false;
+string SmallShell::toChangePrompt;
+char* SmallShell::lastWorkingDirectory;
+bool SmallShell::isChpromptNeeded = false;
+
+
+BuiltInCommand::BuiltInCommand(const char *cmd_line): Command(cmd_line)
+{
+
+}
+
