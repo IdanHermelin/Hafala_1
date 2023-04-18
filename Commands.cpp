@@ -32,6 +32,7 @@ string _rtrim(const std::string& s)
 {
   size_t end = s.find_last_not_of(WHITESPACE);
   return (end == std::string::npos) ? "" : s.substr(0, end + 1);
+
 }
 
 string _trim(const std::string& s)
@@ -114,6 +115,11 @@ Command * SmallShell::CreateCommand(const char* cmd_line) {
   else if (firstWord.compare("chprompt") == 0){
       return new changePromptCommand(cmd_line);
   }
+  else if (firstWord.compare("jobs") == 0){
+      return new JobsCommand(cmd_line,SmallShell::listOfJobs);
+  }
+
+
 //  else {
 //    return new ExternalCommand(cmd_line);
 //  }
@@ -182,6 +188,25 @@ void ChangeDirCommand::execute() {
     }
 
 }
+JobsCommand::JobsCommand(const char *cmd_line, JobsList *jobs): BuiltInCommand(cmd_line)
+{
+}
+
+void JobsCommand::execute() {
+    vector<JobsList::JobEntry> myListOfJobs = *SmallShell::listOfJobs->getVec();
+    for (int i = 0;i < myListOfJobs.size();i++){
+        cout << "[" << myListOfJobs[i].job_index <<"] " << myListOfJobs[i].cmd_line;
+        cout << " : " << getpid() <<difftime(myListOfJobs[i].entryTime, time(nullptr))<< endl;
+    }
+
+}
+
+
+std::vector<JobsList::JobEntry> *JobsList::getVec() {
+    return this->vectorOfJobs;
+}
+
+
 
 GetCurrDirCommand::GetCurrDirCommand(const char *cmd_line): BuiltInCommand(cmd_line)
 {
@@ -236,5 +261,6 @@ bool SmallShell::isChpromptNeeded;
 std::string SmallShell::toChangePrompt;
 char* SmallShell::lastWorkingDirectory;
 bool SmallShell::isLastDirectoryExist;
+JobsList* SmallShell::listOfJobs;
 
 

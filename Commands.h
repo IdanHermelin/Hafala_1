@@ -2,7 +2,7 @@
 #define SMASH_COMMAND_H_
 
 #include <vector>
-
+#include <ctime>
 #define COMMAND_ARGS_MAX_LENGTH (200)
 #define COMMAND_MAX_ARGS (20)
 
@@ -84,9 +84,8 @@ public:
 
 private:
     std::string plastPrompt;
-
-
 };
+
 
 class JobsList;
 class QuitCommand : public BuiltInCommand {
@@ -102,9 +101,12 @@ class JobsList {
  public:
   class JobEntry {
    // TODO: Add your data members
+  public:
    int job_index;
    bool isStopped;
    std::time_t entryTime;
+   std::string cmd_line;
+
   };
  // TODO: Add your data members
  public:
@@ -118,9 +120,12 @@ class JobsList {
   void removeJobById(int jobId);
   JobEntry * getLastJob(int* lastJobId);
   JobEntry *getLastStoppedJob(int *jobId);
+  std::vector<JobEntry>* getVec();
+
   // TODO: Add extra methods or modify exisitng ones as needed
 private:
-    std::vector<std::string> jobs_list;
+    std::vector<JobEntry>* vectorOfJobs;
+
     int max_index=0;
 };
 
@@ -208,6 +213,8 @@ class SmallShell {
     static std::string toChangePrompt;
     static char* lastWorkingDirectory;
     static bool isLastDirectoryExist;
+    static JobsList* listOfJobs;
+
 
 
 
