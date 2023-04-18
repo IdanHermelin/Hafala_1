@@ -156,14 +156,14 @@ void ChangeDirCommand::execute() {
         char* plastPwd = new char[this->requestedDir.length() + 1];
         strcpy(plastPwd, this->requestedDir.c_str());
 
-        if (chdir(plastPwd)) {
+        if (chdir(plastPwd)!=0) {
 
             perror("smash error: cd failed");
         }
         else{
-            for (int i=0;i<1024; i++){
-                SmallShell::lastWorkingDirectory[i] = cwd[i];
-            }
+
+            SmallShell::lastWorkingDirectory = new char[strlen(cwd)+1];
+            strcpy(SmallShell::lastWorkingDirectory,cwd);
             SmallShell::isLastDirectoryExist = true;
         }
     }
@@ -175,9 +175,9 @@ void ChangeDirCommand::execute() {
             char cwd[1024];
             getcwd(cwd,sizeof(cwd));
             chdir(SmallShell::lastWorkingDirectory);
-            for (int i=0;i<1024; i++){
-                SmallShell::lastWorkingDirectory[i] = cwd[i];
-            }
+            SmallShell::lastWorkingDirectory = new char[strlen(cwd)+1];
+            strcpy(SmallShell::lastWorkingDirectory,cwd);
+            SmallShell::isLastDirectoryExist = true;
         }
     }
 
@@ -225,14 +225,16 @@ void changePromptCommand::execute()
     }
 
 }
-bool SmallShell::isLastDirectoryExist = false;
-string SmallShell::toChangePrompt;
-char* SmallShell::lastWorkingDirectory;
-bool SmallShell::isChpromptNeeded = false;
 
 
 BuiltInCommand::BuiltInCommand(const char *cmd_line): Command(cmd_line)
 {
 
 }
+
+bool SmallShell::isChpromptNeeded;
+std::string SmallShell::toChangePrompt;
+char* SmallShell::lastWorkingDirectory;
+bool SmallShell::isLastDirectoryExist;
+
 

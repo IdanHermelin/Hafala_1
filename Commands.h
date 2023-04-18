@@ -198,15 +198,20 @@ class SmallShell {
     return instance;
   }
   ~SmallShell();
-  static bool isChpromptNeeded;
-  static std::string toChangePrompt;
-  static char* lastWorkingDirectory;
-  static bool isLastDirectoryExist;
+    static bool isChpromptNeeded;
+    static std::string toChangePrompt;
+    static char* lastWorkingDirectory;
+    static bool isLastDirectoryExist;
 
 
 
-  void executeCommand(const char* cmd_line);
+
+    void executeCommand(const char* cmd_line);
   // TODO: add extra methods as needed
 };
+
+
+
+
 
 #endif //SMASH_COMMAND_H_
