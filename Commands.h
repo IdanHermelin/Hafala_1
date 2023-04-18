@@ -99,20 +99,23 @@ public:
 
 class JobsList {
  public:
+
   class JobEntry {
    // TODO: Add your data members
   public:
-   int job_index;
+   int job_index; // job-id
    bool isStopped;
    std::time_t entryTime;
    std::string cmd_line;
+   int job_pid;
+   JobEntry();
 
   };
  // TODO: Add your data members
  public:
   JobsList();
   ~JobsList();
-  void addJob(Command* cmd, bool isStopped = false);
+  void addJob(JobEntry* jobToAdd);
   void printJobsList();
   void killAllJobs();
   void removeFinishedJobs();
@@ -121,12 +124,12 @@ class JobsList {
   JobEntry * getLastJob(int* lastJobId);
   JobEntry *getLastStoppedJob(int *jobId);
   std::vector<JobEntry>* getVec();
+  static std::vector<JobEntry>* vectorOfJobs;
+  static int max_index;
 
   // TODO: Add extra methods or modify exisitng ones as needed
 private:
-    std::vector<JobEntry>* vectorOfJobs;
 
-    int max_index=0;
 };
 
 class JobsCommand : public BuiltInCommand {
@@ -139,6 +142,11 @@ class JobsCommand : public BuiltInCommand {
 
 class ForegroundCommand : public BuiltInCommand {
  // TODO: Add your data members
+ pid_t plastJobId;
+ bool isPlastJobExist;
+ std::string cmd_line;
+
+
  public:
   ForegroundCommand(const char* cmd_line, JobsList* jobs);
   virtual ~ForegroundCommand() {}
@@ -147,6 +155,11 @@ class ForegroundCommand : public BuiltInCommand {
 
 class BackgroundCommand : public BuiltInCommand {
  // TODO: Add your data members
+
+    pid_t plastJobId;
+    bool isPlastJobExist;
+    std::string cmd_line;
+
  public:
   BackgroundCommand(const char* cmd_line, JobsList* jobs);
   virtual ~BackgroundCommand() {}
