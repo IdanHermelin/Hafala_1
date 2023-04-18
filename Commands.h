@@ -102,6 +102,9 @@ class JobsList {
  public:
   class JobEntry {
    // TODO: Add your data members
+   int job_index;
+   bool isStopped;
+   std::time_t entryTime;
   };
  // TODO: Add your data members
  public:
@@ -116,6 +119,9 @@ class JobsList {
   JobEntry * getLastJob(int* lastJobId);
   JobEntry *getLastStoppedJob(int *jobId);
   // TODO: Add extra methods or modify exisitng ones as needed
+private:
+    std::vector<std::string> jobs_list;
+    int max_index=0;
 };
 
 class JobsCommand : public BuiltInCommand {
