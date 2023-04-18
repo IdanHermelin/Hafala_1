@@ -3,9 +3,11 @@
 #include <iostream>
 #include <vector>
 #include <sstream>
-//#include <sys/wait.h>
+#include <sys/wait.h>
 #include <iomanip>
 #include "Commands.h"
+#include "signals.h"
+#include <signal.h>
 
 using namespace std;
 
@@ -118,6 +120,12 @@ Command * SmallShell::CreateCommand(const char* cmd_line) {
   else if (firstWord.compare("jobs") == 0){
       return new JobsCommand(cmd_line,SmallShell::listOfJobs);
   }
+  else if(firstWord.compare("fg")==0){
+      return new ForegroundCommand(cmd_line,SmallShell::listOfJobs);
+  }
+  else if(firstWord.compare("bg") == 0){
+      return new BackgroundCommand(cmd_line,SmallShell::listOfJobs);
+  }
 
 
 //  else {
@@ -196,16 +204,10 @@ void JobsCommand::execute() {
     vector<JobsList::JobEntry> myListOfJobs = *SmallShell::listOfJobs->getVec();
     for (int i = 0;i < myListOfJobs.size();i++){
         cout << "[" << myListOfJobs[i].job_index <<"] " << myListOfJobs[i].cmd_line;
-        cout << " : " << getpid() <<difftime(myListOfJobs[i].entryTime, time(nullptr))<< endl;
+        cout << " : " << myListOfJobs[i].job_pid <<difftime(myListOfJobs[i].entryTime, time(nullptr))<< endl;
     }
 
 }
-
-
-std::vector<JobsList::JobEntry> *JobsList::getVec() {
-    return this->vectorOfJobs;
-}
-
 
 
 GetCurrDirCommand::GetCurrDirCommand(const char *cmd_line): BuiltInCommand(cmd_line)
@@ -251,16 +253,144 @@ void changePromptCommand::execute()
 
 }
 
+std::vector<JobsList::JobEntry> *JobsList::getVec() {
+    return this->vectorOfJobs;
+}
+
+ForegroundCommand::ForegroundCommand(const char *cmd_line, JobsList *jobs):BuiltInCommand(cmd_line)
+{
+    //check the syntax of the command:
+    string cmd_s = _trim(string(cmd_line));
+    this->cmd_line = cmd_s;
+    size_t index = cmd_s.find_first_of(WHITESPACE);
+    string afterFGLine = cmd_s.substr(index+1);
+    afterFGLine = _trim(afterFGLine);
+    size_t isMoreThan2Argues = afterFGLine.find_first_of(" ");
+    if (isMoreThan2Argues != string::npos){
+        cerr << "smash error: fg: invalid arguments" <<endl;
+    }
+
+    if(afterFGLine!=" "){ //there is a job-id
+        plastJobId =std::stoi(afterFGLine);
+        isPlastJobExist = true;
+    }
+    else{
+        plastJobId = 0;
+        isPlastJobExist = false;
+        if(jobs->max_index== 0){
+            cerr << "smash error: fg: jobs list is empty" << endl;
+        }
+    }
+}
+
+
+void ForegroundCommand::execute()
+{
+    pid_t plastPid = -1;
+    vector<JobsList::JobEntry> myVector = *JobsList::vectorOfJobs;
+    if (this->isPlastJobExist == false){
+            plastPid = myVector[myVector.size()-1].job_pid;
+    }
+    for (int i=0;i<myVector.size();i++){
+        if(myVector[i].job_index == this->plastJobId) {
+            plastPid = myVector[i].job_pid;
+        }
+    }
+    if (plastPid == -1){
+        cerr << "smash error: fg: job-id " <<this->plastJobId<< " does not exist" << endl;
+    }
+
+    else{
+        JobsList::JobEntry jobTo
+        SmallShell::listOfJobs->addJob()
+        cout << this->cmd_line <<": " << plastPid << endl;
+        kill(plastPid,SIGCONT);
+        int status;
+        waitpid(plastPid, &status, 0);
+    }
+}
+void JobsList::removeJobById(int jobId) {
+
+
+    for (int i=0;i<this->vectorOfJobs->size();++i){
+        if(this->vectorOfJobs[i].data()->job_index == jobId){
+            this->vectorOfJobs.
+        }
+    }
+
+
+
+}
+
+JobsList::JobEntry *JobsList::getJobById(int jobId) {
+    vector<JobsList::JobEntry> myVector = *JobsList::vectorOfJobs;
+    for( int i=0; i<myVector.size();i++ ) {
+        if(myVector[i].job_index == jobId){
+            return &myVector[i];
+        }
+    }
+    return nullptr;
+}
+
+JobsList::JobEntry *JobsList::getLastJob(int *lastJobId) {
+    if(JobsList::max_index==0){
+        return nullptr;
+    }
+    vector<JobsList::JobEntry> myVector = *JobsList::vectorOfJobs;
+    return &myVector[JobsList::max_index-1];
+}
+
+
+
+
+BackgroundCommand::BackgroundCommand(const char *cmd_line, JobsList *jobs) : BuiltInCommand(cmd_line){
+    //check the syntax of the command:
+    string cmd_s = _trim(string(cmd_line));
+    this->cmd_line = cmd_s;
+    size_t index = cmd_s.find_first_of(WHITESPACE);
+    string afterBGLine = cmd_s.substr(index+1);
+    afterBGLine = _trim(afterBGLine);
+    size_t isMoreThan2Argues = afterBGLine.find_first_of(" ");
+    if (isMoreThan2Argues != string::npos){
+        cerr << "smash error: fg: invalid arguments" <<endl;
+    }
+    if(afterBGLine!=" "){ //there is a job-id
+        plastJobId =std::stoi(afterBGLine);
+        isPlastJobExist = true;
+    }
+    else{
+        plastJobId = 0;
+        isPlastJobExist = false;
+    }
+    //checking other things:
+
+}
+
+
+void BackgroundCommand::execute(){
+
+
+}
+
 
 BuiltInCommand::BuiltInCommand(const char *cmd_line): Command(cmd_line)
 {
 
 }
 
+
+
 bool SmallShell::isChpromptNeeded;
 std::string SmallShell::toChangePrompt;
 char* SmallShell::lastWorkingDirectory;
 bool SmallShell::isLastDirectoryExist;
 JobsList* SmallShell::listOfJobs;
+std::vector<JobsList::JobEntry>* JobsList::vectorOfJobs;
+int  JobsList::max_index=0;
+
+
+
+
+
 
 
