@@ -8,6 +8,7 @@
 
 class Command {
 // TODO: Add your data members
+
  public:
   Command(const char* cmd_line);
   virtual ~Command();
@@ -23,12 +24,15 @@ class BuiltInCommand : public Command {
   virtual ~BuiltInCommand() {}
 };
 
-//class ExternalCommand : public Command {
-// public:
-//  ExternalCommand(const char* cmd_line);
-//  virtual ~ExternalCommand() {}
-//  void execute() override;
-//};
+class ExternalCommand : public Command {
+
+
+   std::string cmd_line;
+ public:
+  ExternalCommand(const char* cmd_line);
+  virtual ~ExternalCommand() {}
+  void execute() override;
+};
 
 class PipeCommand : public Command {
   // TODO: Add your data members
