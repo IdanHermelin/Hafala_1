@@ -89,7 +89,8 @@ SmallShell::SmallShell() {
 SmallShell::~SmallShell() {
 // TODO: add your implementation
 }
-Command::Command(const char *cmd_line) {
+Command::Command(const char *cmd_line)
+{
 
 }
 Command::~Command() noexcept {
@@ -126,6 +127,13 @@ Command * SmallShell::CreateCommand(const char* cmd_line) {
   else if(firstWord.compare("bg") == 0){
       return new BackgroundCommand(cmd_line,SmallShell::listOfJobs);
   }
+  else if (firstWord.compare("quit")){
+      return new QuitCommand(cmd_line,SmallShell::listOfJobs);
+  }
+
+  else {
+      return new ExternalCommand(cmd_line);
+  }
 
 
 //  else {
@@ -146,6 +154,48 @@ void SmallShell::executeCommand(const char *cmd_line) {
 //{
 //
 //}
+
+ExternalCommand::ExternalCommand(const char *cmd_line) : Command(cmd_line)
+{
+    this->cmd_line = cmd_line;
+}
+
+
+void ExternalCommand::execute()
+{
+    pid_t pid = fork();
+    if(pid == 0){
+        string ScanCommandLine = this->cmd_line;
+        bool isCommandLineOver = false;
+        char* args[21];
+        int index = 0;
+
+
+        while(isCommandLineOver == false){
+            size_t next = ScanCommandLine.find_first_of(" ");
+            string toPush = ScanCommandLine.substr(0,next);
+            string restCommandLine = ScanCommandLine.substr(next);
+            const char* to_Push = toPush.c_str();
+            args[index] = new char[toPush.length()+1];
+            strcpy(args[index],to_Push);
+            index++;
+            size_t check = restCommandLine.find_first_not_of(" ");
+            if(check == string::npos){
+                isCommandLineOver = true;
+            }
+        }
+
+
+    }
+
+}
+
+
+
+
+
+
+
 
 
 ChangeDirCommand::ChangeDirCommand(const char *cmd_line): BuiltInCommand(cmd_line)
@@ -206,7 +256,6 @@ void JobsCommand::execute() {
         cout << "[" << myListOfJobs[i].job_index <<"] " << myListOfJobs[i].cmd_line;
         cout << " : " << myListOfJobs[i].job_pid <<difftime(myListOfJobs[i].entryTime, time(nullptr))<< endl;
     }
-
 }
 
 
@@ -301,24 +350,24 @@ void ForegroundCommand::execute()
     }
 
     else{
-        JobsList::JobEntry jobTo
-        SmallShell::listOfJobs->addJob()
+
+        SmallShell::listOfJobs->removeJobById(this->plastJobId);
         cout << this->cmd_line <<": " << plastPid << endl;
-        kill(plastPid,SIGCONT);
-        int status;
-        waitpid(plastPid, &status, 0);
+//        kill(plastPid,SIGCONT);
+//        int status;
+//        waitpid(plastPid, &status, 0);
     }
 }
 void JobsList::removeJobById(int jobId) {
 
-
     for (int i=0;i<this->vectorOfJobs->size();++i){
         if(this->vectorOfJobs[i].data()->job_index == jobId){
-            this->vectorOfJobs.
+            this->vectorOfJobs->erase(vectorOfJobs->begin()+i);
+            if (this->max_index == i){
+                this->max_index = vectorOfJobs[i].data()->job_index;
+            }
         }
     }
-
-
 
 }
 
@@ -367,10 +416,41 @@ BackgroundCommand::BackgroundCommand(const char *cmd_line, JobsList *jobs) : Bui
 }
 
 
+
 void BackgroundCommand::execute(){
 
 
+    int lastStoppedJobId = -1;
+
+    if (this->isPlastJobExist == true) {
+        if (SmallShell::listOfJobs->getJobById(this->plastJobId) == nullptr) {
+            cerr << "smash error: bg: job-id " << this->plastJobId << " does not exist" << endl;
+        } else if (SmallShell::listOfJobs->getJobById(this->plastJobId)->isStopped == false) {
+            cerr << "smash error: bg: job-id " << this->plastJobId << " is already running in the background" << endl;
+        }
+        SmallShell::listOfJobs->getJobById(this->plastJobId)->isStopped = false;
+        cout << this->cmd_line << " : " << this->plastJobId << endl;
+
+    }
+
+    else {
+        for (int i = 0; i < SmallShell::listOfJobs->vectorOfJobs->size(); i++) {
+            if (SmallShell::listOfJobs->vectorOfJobs[i].data()->isStopped == true) {
+                lastStoppedJobId = SmallShell::listOfJobs->vectorOfJobs[i].data()->job_index;
+            }
+        }
+        if (lastStoppedJobId == -1) {
+            cerr << "smash error: bg: there is no stopped jobs to resume" << endl;
+        }
+    }
 }
+
+
+
+
+
+
+
 
 
 BuiltInCommand::BuiltInCommand(const char *cmd_line): Command(cmd_line)
