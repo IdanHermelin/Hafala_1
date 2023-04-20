@@ -212,7 +212,7 @@ void QuitCommand::execute() {
             cout << SmallShell::listOfJobs->vectorOfJobs[i].data()->job_pid << " : " << this->cmdLine;
         }
         for (int i = 0; i < SmallShell::listOfJobs->vectorOfJobs->size(); i++) {
-            kill(SmallShell::listOfJobs->vectorOfJobs[i].data()->job_pid, SIGKILL);
+            //kill(SmallShell::listOfJobs->vectorOfJobs[i].data()->job_pid, SIGKILL);
         }
     }
 }
@@ -242,7 +242,12 @@ bool ExternalCommand::isComplex() {
     return true;
 }
 
-
+//void ExternalCommand::execute() {
+//    std::time_t entry_time = time(nullptr);
+//    pid_t pid = getpid();
+//    JobsList::JobEntry jobToAdd(entry_time,cmd_line,pid);
+//    SmallShell::listOfJobs->JobsList::addJob(&jobToAdd);
+//}
 
 void ExternalCommand::execute()
 {
@@ -324,7 +329,7 @@ void ExternalCommand::execute()
         else{
             if (isBgCmd == false){
                 int status;
-                waitpid(pid, &status, 0);
+                //waitpid(pid, &status, 0);
             }
             else
             {
@@ -336,9 +341,12 @@ void ExternalCommand::execute()
 }
 
 void JobsList::addJob(JobEntry *jobToAdd) {
-    jobToAdd->job_index = this->max_index++;
-    this->vectorOfJobs->insert(this->vectorOfJobs->cend(),*jobToAdd);
     this->max_index++;
+    if (max_index == 3){
+        cout << 2 << endl;
+    }
+    jobToAdd->job_index = this->max_index;
+    this->vectorOfJobs->insert(this->vectorOfJobs->cend(),*jobToAdd);
 }
 
 JobsList::JobEntry::JobEntry(time_t entry_time, std::string cmd_line, pid_t job_pid)
@@ -413,9 +421,14 @@ JobsCommand::JobsCommand(const char *cmd_line, JobsList *jobs): BuiltInCommand(c
 
 void JobsCommand::execute() {
 
-    for (int i = 0;i < SmallShell::listOfJobs->vectorOfJobs->size();i++){
-        cout << "[" << SmallShell::listOfJobs->vectorOfJobs[i].data()->job_index <<"] " << SmallShell::listOfJobs->vectorOfJobs[i].data()->cmd_line;
-        cout << " : " << SmallShell::listOfJobs->vectorOfJobs[i].data()->job_pid <<difftime(SmallShell::listOfJobs->vectorOfJobs[i].data()->entryTime, time(nullptr))<< endl;
+    vector<JobsList::JobEntry>* myVec =  SmallShell::listOfJobs->vectorOfJobs;
+    for (int i = 0;i < myVec->size();i++){
+        int job_index = (*myVec)[i].job_index;
+        string cmdLine = (*myVec)[i].cmd_line;
+        pid_t pid = (*myVec)[i].job_pid;
+        cout << "[" << job_index <<"] " << cmdLine;
+        cout << " : " << pid << " ";
+        cout << difftime((*myVec)[i].entryTime, time(nullptr))<< "secs" << endl;
     }
 }
 
@@ -514,22 +527,22 @@ void ForegroundCommand::execute()
 
         SmallShell::listOfJobs->removeJobById(this->plastJobId);
         cout << this->cmd_line <<": " << plastPid << endl;
-        kill(plastPid,SIGCONT);
+        //kill(plastPid,SIGCONT);
         int status;
-        waitpid(plastPid, &status, 0);
+        //waitpid(plastPid, &status, 0);
     }
 }
 void JobsList::removeJobById(int jobId) {
 
     for (int i=0;i<this->vectorOfJobs->size();++i){
-        if(this->vectorOfJobs[i].data()->job_index == jobId){
+        if((*this->vectorOfJobs)[i].job_index == jobId){
             this->vectorOfJobs->erase(vectorOfJobs->begin()+i);
             if (this->max_index == i){
                 if(this->max_index == 1){
                     this->max_index = 0;
                 }
                 else{
-                    this->max_index = vectorOfJobs[i-1].data()->job_index;
+                    this->max_index = (*vectorOfJobs)[i-1].job_index;
                 }
             }
         }
@@ -602,8 +615,8 @@ void BackgroundCommand::execute(){
 
     else {
         for (int i = 0; i < SmallShell::listOfJobs->vectorOfJobs->size(); i++) {
-            if (SmallShell::listOfJobs->vectorOfJobs[i].data()->isStopped == true) {
-                lastStoppedJobId = SmallShell::listOfJobs->vectorOfJobs[i].data()->job_index;
+            if ((*SmallShell::listOfJobs->vectorOfJobs)[i].isStopped == true) {
+                lastStoppedJobId = (*SmallShell::listOfJobs->vectorOfJobs)[i].job_index;
             }
         }
         if (lastStoppedJobId == -1) {
