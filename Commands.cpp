@@ -108,29 +108,68 @@ Command * SmallShell::CreateCommand(const char* cmd_line) {
   string firstWord = cmd_s.substr(0, cmd_s.find_first_of(" \n"));
 
   if (firstWord.compare("pwd") == 0) {
+      if (_isBackgroundComamnd(cmd_line)){
+          char* toSend = const_cast<char*>(cmd_line);
+          _removeBackgroundSign(toSend);
+          return new GetCurrDirCommand(toSend);
+      }
     return new GetCurrDirCommand(cmd_line);
   }
   else if (firstWord.compare("showpid") == 0) {
+      if (_isBackgroundComamnd(cmd_line)){
+          char* toSend = const_cast<char*>(cmd_line);
+          _removeBackgroundSign(toSend);
+          return new ShowPidCommand(toSend);
+      }
     return new ShowPidCommand(cmd_line);
   }
   else if (firstWord.compare("cd") == 0) {
-
+      if (_isBackgroundComamnd(cmd_line)){
+          char* toSend = const_cast<char*>(cmd_line);
+          _removeBackgroundSign(toSend);
+          return new ChangeDirCommand(toSend);
+      }
       return new ChangeDirCommand(cmd_line);
   }
   else if (firstWord.compare("chprompt") == 0){
+      if (_isBackgroundComamnd(cmd_line)){
+          char* toSend = const_cast<char*>(cmd_line);
+          _removeBackgroundSign(toSend);
+          return new changePromptCommand(toSend);
+      }
       return new changePromptCommand(cmd_line);
   }
-  else if (firstWord.compare("jobs") == 0){
-      return new JobsCommand(cmd_line,SmallShell::listOfJobs);
+  else if (firstWord.compare("jobs") == 0){\
+        if (_isBackgroundComamnd(cmd_line)){
+          char* toSend = const_cast<char*>(cmd_line);
+          _removeBackgroundSign(toSend);
+          return new JobsCommand(toSend,SmallShell::listOfJobs);
+      }
+        return new JobsCommand(cmd_line,SmallShell::listOfJobs);
   }
   else if(firstWord.compare("fg")==0){
+      if (_isBackgroundComamnd(cmd_line)){
+          char* toSend = const_cast<char*>(cmd_line);
+          _removeBackgroundSign(toSend);
+          return new ForegroundCommand(toSend,SmallShell::listOfJobs);
+      }
       return new ForegroundCommand(cmd_line,SmallShell::listOfJobs);
   }
   else if(firstWord.compare("bg") == 0){
+      if (_isBackgroundComamnd(cmd_line)){
+          char* toSend = const_cast<char*>(cmd_line);
+          _removeBackgroundSign(toSend);
+          return new BackgroundCommand(toSend,SmallShell::listOfJobs);
+      }
       return new BackgroundCommand(cmd_line,SmallShell::listOfJobs);
   }
   else if (firstWord.compare("quit") == 0){
-
+      if (_isBackgroundComamnd(cmd_line)){
+          char* toSend = const_cast<char*>(cmd_line);
+          _removeBackgroundSign(toSend);
+          SmallShell::toQuit = true;
+          return new QuitCommand(toSend,SmallShell::listOfJobs);
+      }
       SmallShell::toQuit = true;
       return new QuitCommand(cmd_line,SmallShell::listOfJobs);
   }
@@ -149,10 +188,32 @@ Command * SmallShell::CreateCommand(const char* cmd_line) {
 
 QuitCommand::QuitCommand(const char *cmd_line, JobsList *jobs) : BuiltInCommand(cmd_line)
 {
+    this->cmdLine = _trim(cmd_line);
+    string cmd_s = _trim(string(cmd_line));
+    size_t middle = cmd_s.find_first_of(WHITESPACE);
+    string afterQuitLine = cmd_s.substr(middle);
+    afterQuitLine = _ltrim(afterQuitLine);
+    if(afterQuitLine.compare("kill") == 0) {
+        this->isSpecified = true;
+    }
+    else{
+        this->isSpecified = false;
+    }
+
 
 }
 
 void QuitCommand::execute() {
+
+    if(this->isSpecified == true){
+        cout << "smash: sending SIGKILL signal to" << SmallShell::listOfJobs->vectorOfJobs->size()<< "jobs:" <<endl;
+        for (int i=0;i<SmallShell::listOfJobs->vectorOfJobs->size();i++){
+            cout << SmallShell::listOfJobs->vectorOfJobs[i].data()->job_pid <<" : " << this->cmdLine;
+        }
+        for (int i=0;i<SmallShell::listOfJobs->vectorOfJobs->size();i++){
+            kill(SmallShell::listOfJobs->vectorOfJobs[i].data()->job_pid, SIGKILL);
+        }
+    }
 
 }
 void SmallShell::executeCommand(const char *cmd_line) {
@@ -169,7 +230,7 @@ void SmallShell::executeCommand(const char *cmd_line) {
 
 ExternalCommand::ExternalCommand(const char *cmdLine) : Command(cmdLine)
 {
-    this->cmd_line = cmdLine;
+    this->cmd_line = _trim(cmdLine);
 
 }
 
@@ -182,7 +243,6 @@ bool ExternalCommand::isComplex() {
 
 void ExternalCommand::execute()
 {
-
 
     std::time_t entry_time = time(nullptr);
     const char* cmdLineToSendConst = this->cmd_line.c_str();
@@ -203,7 +263,7 @@ void ExternalCommand::execute()
             }
             else{
                 JobsList::JobEntry jobToAdd(entry_time,cmd_line,pid);
-//                SmallShell::listOfJobs->addJob(&jobToAdd);
+                SmallShell::listOfJobs->addJob(&jobToAdd);
             }
         }
     }
@@ -259,10 +319,16 @@ void ExternalCommand::execute()
             else
             {
                 JobsList::JobEntry jobToAdd(entry_time,cmd_line,pid);
-                //SmallShell::listOfJobs->JobsList::addJob(&jobToAdd);
+                SmallShell::listOfJobs->JobsList::addJob(&jobToAdd);
             }
         }
     }
+}
+
+void JobsList::addJob(JobEntry *jobToAdd) {
+    jobToAdd->job_index = this->max_index++;
+    this->vectorOfJobs->insert(this->vectorOfJobs->cend(),*jobToAdd);
+    this->max_index++;
 }
 
 JobsList::JobEntry::JobEntry(time_t entry_time, std::string cmd_line, pid_t job_pid)
@@ -270,6 +336,7 @@ JobsList::JobEntry::JobEntry(time_t entry_time, std::string cmd_line, pid_t job_
     this->isStopped = false;
     this->cmd_line = cmd_line;
     this->entryTime = entry_time;
+    this->job_pid = job_pid;
 
 }
 
@@ -443,10 +510,16 @@ void JobsList::removeJobById(int jobId) {
         if(this->vectorOfJobs[i].data()->job_index == jobId){
             this->vectorOfJobs->erase(vectorOfJobs->begin()+i);
             if (this->max_index == i){
-                this->max_index = vectorOfJobs[i].data()->job_index;
+                if(this->max_index == 1){
+                    this->max_index = 0;
+                }
+                else{
+                    this->max_index = vectorOfJobs[i-1].data()->job_index;
+                }
             }
         }
     }
+
 
 }
 
