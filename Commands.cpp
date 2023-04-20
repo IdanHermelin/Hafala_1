@@ -83,8 +83,10 @@ void _removeBackgroundSign(char* cmd_line) {
 }
 
 // TODO: Add your implementation for classes in Commands.h 
-
+class JobsList;
 SmallShell::SmallShell() {
+
+    SmallShell::listOfJobs = new JobsList();
 // TODO: add your implementation
 }
 
@@ -200,22 +202,21 @@ QuitCommand::QuitCommand(const char *cmd_line, JobsList *jobs) : BuiltInCommand(
         this->isSpecified = false;
     }
 
-
 }
 
 void QuitCommand::execute() {
 
-    if(this->isSpecified == true){
-        cout << "smash: sending SIGKILL signal to" << SmallShell::listOfJobs->vectorOfJobs->size()<< "jobs:" <<endl;
-        for (int i=0;i<SmallShell::listOfJobs->vectorOfJobs->size();i++){
-            cout << SmallShell::listOfJobs->vectorOfJobs[i].data()->job_pid <<" : " << this->cmdLine;
+    if (this->isSpecified == true) {
+        cout << "smash: sending SIGKILL signal to" << SmallShell::listOfJobs->vectorOfJobs->size() << "jobs:" << endl;
+        for (int i = 0; i < SmallShell::listOfJobs->vectorOfJobs->size(); i++) {
+            cout << SmallShell::listOfJobs->vectorOfJobs[i].data()->job_pid << " : " << this->cmdLine;
         }
-        for (int i=0;i<SmallShell::listOfJobs->vectorOfJobs->size();i++){
+        for (int i = 0; i < SmallShell::listOfJobs->vectorOfJobs->size(); i++) {
             kill(SmallShell::listOfJobs->vectorOfJobs[i].data()->job_pid, SIGKILL);
         }
     }
-
 }
+
 void SmallShell::executeCommand(const char *cmd_line) {
   // TODO: Add your implementation here
 
@@ -241,12 +242,21 @@ bool ExternalCommand::isComplex() {
     return true;
 }
 
+
+
 void ExternalCommand::execute()
 {
 
     std::time_t entry_time = time(nullptr);
     const char* cmdLineToSendConst = this->cmd_line.c_str();
-    bool isBgCmd = _isBackgroundComamnd(cmdLineToSendConst);
+    bool isBgCmd;
+    size_t check = this->cmd_line.find("&");
+    if (isBgCmd == string::npos){
+        isBgCmd = false;
+    }
+    else {
+        isBgCmd = true;
+    }
 
     if (this->isComplex() == true){
         pid_t pid = fork();
@@ -341,7 +351,12 @@ JobsList::JobEntry::JobEntry(time_t entry_time, std::string cmd_line, pid_t job_
 }
 
 
+JobsList::JobsList()
+{
+    this->max_index = 0;
+    this->vectorOfJobs = new vector<JobEntry>;
 
+}
 
 
 ChangeDirCommand::ChangeDirCommand(const char *cmd_line): BuiltInCommand(cmd_line)
@@ -392,15 +407,15 @@ void ChangeDirCommand::execute() {
     }
 
 }
-JobsCommand::JobsCommand(const char *cmd_line, JobsList *jobs): BuiltInCommand(cmd_line)
-{
+JobsCommand::JobsCommand(const char *cmd_line, JobsList *jobs): BuiltInCommand(cmd_line) {
+
 }
 
 void JobsCommand::execute() {
-    vector<JobsList::JobEntry> myListOfJobs = *SmallShell::listOfJobs->getVec();
-    for (int i = 0;i < myListOfJobs.size();i++){
-        cout << "[" << myListOfJobs[i].job_index <<"] " << myListOfJobs[i].cmd_line;
-        cout << " : " << myListOfJobs[i].job_pid <<difftime(myListOfJobs[i].entryTime, time(nullptr))<< endl;
+
+    for (int i = 0;i < SmallShell::listOfJobs->vectorOfJobs->size();i++){
+        cout << "[" << SmallShell::listOfJobs->vectorOfJobs[i].data()->job_index <<"] " << SmallShell::listOfJobs->vectorOfJobs[i].data()->cmd_line;
+        cout << " : " << SmallShell::listOfJobs->vectorOfJobs[i].data()->job_pid <<difftime(SmallShell::listOfJobs->vectorOfJobs[i].data()->entryTime, time(nullptr))<< endl;
     }
 }
 
@@ -499,9 +514,9 @@ void ForegroundCommand::execute()
 
         SmallShell::listOfJobs->removeJobById(this->plastJobId);
         cout << this->cmd_line <<": " << plastPid << endl;
-//        kill(plastPid,SIGCONT);
-//        int status;
-//        waitpid(plastPid, &status, 0);
+        kill(plastPid,SIGCONT);
+        int status;
+        waitpid(plastPid, &status, 0);
     }
 }
 void JobsList::removeJobById(int jobId) {
