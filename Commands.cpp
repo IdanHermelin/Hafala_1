@@ -8,6 +8,8 @@
 #include "Commands.h"
 #include "signals.h"
 #include <signal.h>
+#include <ctime>
+
 
 using namespace std;
 
@@ -158,41 +160,103 @@ void SmallShell::executeCommand(const char *cmd_line) {
 ExternalCommand::ExternalCommand(const char *cmd_line) : Command(cmd_line)
 {
     this->cmd_line = cmd_line;
+
 }
 
+bool ExternalCommand::isComplex() {
+    if(this->cmd_line.find("*")||this->cmd_line.find("?")){
+        return true;
+    }
+    return true;
+}
 
 void ExternalCommand::execute()
 {
-    pid_t pid = fork();
-    if(pid == 0){
-        string ScanCommandLine = this->cmd_line;
-        bool isCommandLineOver = false;
-        char* args[21];
-        int index = 0;
+    std::time_t entry_time = time(nullptr);
+    const char* cmdLineToSendConst = this->cmd_line.c_str();
+    bool isBgCmd = _isBackgroundComamnd(cmdLineToSendConst);
 
+    if (this->isComplex() == true){
+        pid_t pid = fork();
+        if (pid == 0){
 
-        while(isCommandLineOver == false){
-            size_t next = ScanCommandLine.find_first_of(" ");
-            string toPush = ScanCommandLine.substr(0,next);
-            string restCommandLine = ScanCommandLine.substr(next);
-            const char* to_Push = toPush.c_str();
-            args[index] = new char[toPush.length()+1];
-            strcpy(args[index],to_Push);
-            index++;
-            size_t check = restCommandLine.find_first_not_of(" ");
-            if(check == string::npos){
-                isCommandLineOver = true;
+            char *cmdLineToSend = const_cast<char*>(cmdLineToSendConst);
+            char *args[] = {"/bin/bash",cmdLineToSend, nullptr};
+            execvp(args[0],args);
+        }
+        else{
+            if (isBgCmd == false){
+                int status;
+                waitpid(pid, &status, 0);
+            }
+            else{
+                JobsList::JobEntry jobToAdd(entry_time,cmd_line,pid);
+                SmallShell::listOfJobs->addJob(&jobToAdd);
             }
         }
-
-
     }
 
+    if(this->isComplex() == false){
+        pid_t pid = fork();
+        if(pid == 0) {
+            string ScanCommandLine = this->cmd_line;
+            bool isCommandLineOver = false;
+            char *args[21];
+            int index = 0;
+
+
+            while (isCommandLineOver == false) {
+                size_t next = ScanCommandLine.find_first_of(WHITESPACE);
+                if (next == string::npos) {
+                    isCommandLineOver = true;
+                }
+                string toPush, restCommandLine;
+                if (isCommandLineOver == false) {
+                    toPush = ScanCommandLine.substr(0, next);
+                } else {
+                    toPush = ScanCommandLine;
+                }
+
+
+                if (isCommandLineOver == false) {
+                    restCommandLine = ScanCommandLine.substr(next + 1);
+                }
+                const char *to_Push = toPush.c_str();
+                args[index] = new char[toPush.length() + 1];
+                strcpy(args[index], to_Push);
+                cout << args[index] << endl;
+                index++;
+
+                if (isCommandLineOver == false) {
+                    ScanCommandLine = restCommandLine;
+                }
+
+            }
+            args[index++] = nullptr;
+            execvp(args[0], args);
+
+        }
+        else{
+            if (isBgCmd == false){
+                int status;
+                waitpid(pid, &status, 0);
+            }
+            else
+            {
+                JobsList::JobEntry jobToAdd(entry_time,cmd_line,pid);
+                SmallShell::listOfJobs->addJob(&jobToAdd);
+            }
+        }
+    }
 }
 
+JobsList::JobEntry::JobEntry(time_t entry_time, std::string cmd_line, pid_t job_pid)
+{
+    this->isStopped = false;
+    this->cmd_line = cmd_line;
+    this->entryTime = entry_time;
 
-
-
+}
 
 
 

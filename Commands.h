@@ -32,7 +32,12 @@ class ExternalCommand : public Command {
   ExternalCommand(const char* cmd_line);
   virtual ~ExternalCommand() {}
   void execute() override;
+  bool isComplex();
+
+
 };
+
+
 
 class PipeCommand : public Command {
   // TODO: Add your data members
@@ -111,8 +116,9 @@ class JobsList {
    bool isStopped;
    std::time_t entryTime;
    std::string cmd_line;
-   int job_pid;
+   pid_t job_pid;
    JobEntry();
+   JobEntry(time_t entry_time,std::string cmd_line,pid_t job_pid);
 
   };
  // TODO: Add your data members
