@@ -35,6 +35,7 @@ class ExternalCommand : public Command {
   bool isComplex();
 
 
+
 };
 
 
@@ -136,6 +137,8 @@ class JobsList {
   std::vector<JobEntry>* getVec();
   static std::vector<JobEntry>* vectorOfJobs;
   static int max_index;
+  friend class ExternalCommand;
+
 
   // TODO: Add extra methods or modify exisitng ones as needed
 private:
@@ -237,6 +240,7 @@ class SmallShell {
     static char* lastWorkingDirectory;
     static bool isLastDirectoryExist;
     static JobsList* listOfJobs;
+    static bool toQuit;
 
 
 

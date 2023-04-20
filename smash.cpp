@@ -18,7 +18,7 @@ int main(int argc, char* argv[]) {
     //TODO: setup sig alarm handler
 
     SmallShell& smash = SmallShell::getInstance();
-    while(true) {
+    while(true&&SmallShell::toQuit== false) {
         if(SmallShell::isChpromptNeeded == true){
             std::cout << SmallShell::toChangePrompt << "> " ;
         }

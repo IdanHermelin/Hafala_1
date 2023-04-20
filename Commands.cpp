@@ -129,7 +129,9 @@ Command * SmallShell::CreateCommand(const char* cmd_line) {
   else if(firstWord.compare("bg") == 0){
       return new BackgroundCommand(cmd_line,SmallShell::listOfJobs);
   }
-  else if (firstWord.compare("quit")){
+  else if (firstWord.compare("quit") == 0){
+
+      SmallShell::toQuit = true;
       return new QuitCommand(cmd_line,SmallShell::listOfJobs);
   }
 
@@ -145,6 +147,14 @@ Command * SmallShell::CreateCommand(const char* cmd_line) {
   return nullptr;
 }
 
+QuitCommand::QuitCommand(const char *cmd_line, JobsList *jobs) : BuiltInCommand(cmd_line)
+{
+
+}
+
+void QuitCommand::execute() {
+
+}
 void SmallShell::executeCommand(const char *cmd_line) {
   // TODO: Add your implementation here
 
@@ -157,9 +167,9 @@ void SmallShell::executeCommand(const char *cmd_line) {
 //
 //}
 
-ExternalCommand::ExternalCommand(const char *cmd_line) : Command(cmd_line)
+ExternalCommand::ExternalCommand(const char *cmdLine) : Command(cmdLine)
 {
-    this->cmd_line = cmd_line;
+    this->cmd_line = cmdLine;
 
 }
 
@@ -172,6 +182,8 @@ bool ExternalCommand::isComplex() {
 
 void ExternalCommand::execute()
 {
+
+
     std::time_t entry_time = time(nullptr);
     const char* cmdLineToSendConst = this->cmd_line.c_str();
     bool isBgCmd = _isBackgroundComamnd(cmdLineToSendConst);
@@ -181,7 +193,7 @@ void ExternalCommand::execute()
         if (pid == 0){
 
             char *cmdLineToSend = const_cast<char*>(cmdLineToSendConst);
-            char *args[] = {"/bin/bash",cmdLineToSend, nullptr};
+            char *args[] = {"/bin/bash","-c",cmdLineToSend, nullptr};
             execvp(args[0],args);
         }
         else{
@@ -191,7 +203,7 @@ void ExternalCommand::execute()
             }
             else{
                 JobsList::JobEntry jobToAdd(entry_time,cmd_line,pid);
-                SmallShell::listOfJobs->addJob(&jobToAdd);
+//                SmallShell::listOfJobs->addJob(&jobToAdd);
             }
         }
     }
@@ -233,6 +245,9 @@ void ExternalCommand::execute()
 
             }
             args[index++] = nullptr;
+            for (int i = 0;i < index - 1;i++){
+                cout <<args[i]<<" ";
+            }
             execvp(args[0], args);
 
         }
@@ -244,7 +259,7 @@ void ExternalCommand::execute()
             else
             {
                 JobsList::JobEntry jobToAdd(entry_time,cmd_line,pid);
-                SmallShell::listOfJobs->addJob(&jobToAdd);
+                //SmallShell::listOfJobs->JobsList::addJob(&jobToAdd);
             }
         }
     }
@@ -531,7 +546,7 @@ bool SmallShell::isLastDirectoryExist;
 JobsList* SmallShell::listOfJobs;
 std::vector<JobsList::JobEntry>* JobsList::vectorOfJobs;
 int  JobsList::max_index=0;
-
+bool SmallShell::toQuit;
 
 
 
