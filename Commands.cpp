@@ -210,9 +210,9 @@ QuitCommand::QuitCommand(const char *cmd_line, JobsList *jobs) : BuiltInCommand(
 void QuitCommand::execute() {
 
     if (this->isSpecified == true) {
-        cout << "smash: sending SIGKILL signal to" << SmallShell::listOfJobs->vectorOfJobs->size() << "jobs:" << endl;
+        cout << "smash: sending SIGKILL signal to " << SmallShell::listOfJobs->vectorOfJobs->size() << " jobs:" << endl;
         for (int i = 0; i < SmallShell::listOfJobs->vectorOfJobs->size(); i++) {
-            cout <<(*SmallShell::listOfJobs->vectorOfJobs)[i].job_pid << " : " << this->cmdLine;
+            cout <<(*SmallShell::listOfJobs->vectorOfJobs)[i].job_pid << " : " << (*SmallShell::listOfJobs->vectorOfJobs)[i].cmd_line << endl;
         }
         for (int i = 0; i < SmallShell::listOfJobs->vectorOfJobs->size(); i++) {
             int result = kill((*SmallShell::listOfJobs->vectorOfJobs)[i].job_pid, SIGKILL);
@@ -287,14 +287,7 @@ void ExternalCommand::execute()
 
     std::time_t entry_time = time(nullptr);
     const char* cmdLineToSendConst = this->cmd_line.c_str();
-    bool isBgCmd;
-    size_t check = this->cmd_line.find("&");
-    if (isBgCmd == string::npos){
-        isBgCmd = false;
-    }
-    else {
-        isBgCmd = true;
-    }
+    bool isBgCmd = _isBackgroundComamnd(cmdLineToSendConst);
 
     if (this->isComplex() == true){
         pid_t pid = fork();
@@ -461,7 +454,7 @@ void JobsCommand::execute() {
         pid_t pid = (*myVec)[i].job_pid;
         cout << "[" << job_index <<"] " << cmdLine;
         cout << " : " << pid << " ";
-        cout << difftime((*myVec)[i].entryTime, time(nullptr))<< "secs" << endl;
+        cout << difftime(time(nullptr),(*myVec)[i].entryTime) << " secs" << endl;
     }
 }
 
