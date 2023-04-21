@@ -368,9 +368,6 @@ void ExternalCommand::execute()
 
 void JobsList::addJob(JobEntry *jobToAdd) {
     this->max_index++;
-    if (max_index == 3){
-        cout << 2 << endl;
-    }
     jobToAdd->job_index = this->max_index;
     this->vectorOfJobs->insert(this->vectorOfJobs->cend(),*jobToAdd);
 }
@@ -562,9 +559,9 @@ void JobsList::removeJobById(int jobId) {
 
     for (int i=0;i<this->vectorOfJobs->size();++i){
         if((*this->vectorOfJobs)[i].job_index == jobId){
-            this->vectorOfJobs->erase(vectorOfJobs->begin()+i);
-            if (this->max_index == i){
-                if(this->max_index == 1){
+            this->vectorOfJobs->erase(this->vectorOfJobs->cbegin() + i);
+            if (this->max_index == jobId){
+                if(i == 0){
                     this->max_index = 0;
                 }
                 else{
