@@ -193,6 +193,10 @@ QuitCommand::QuitCommand(const char *cmd_line, JobsList *jobs) : BuiltInCommand(
     this->cmdLine = _trim(cmd_line);
     string cmd_s = _trim(string(cmd_line));
     size_t middle = cmd_s.find_first_of(WHITESPACE);
+    if (middle == string::npos){
+        this->isSpecified = false;
+        return;
+    }
     string afterQuitLine = cmd_s.substr(middle);
     afterQuitLine = _ltrim(afterQuitLine);
     if(afterQuitLine.compare("kill") == 0) {
@@ -201,7 +205,6 @@ QuitCommand::QuitCommand(const char *cmd_line, JobsList *jobs) : BuiltInCommand(
     else{
         this->isSpecified = false;
     }
-
 }
 
 void QuitCommand::execute() {
@@ -209,12 +212,42 @@ void QuitCommand::execute() {
     if (this->isSpecified == true) {
         cout << "smash: sending SIGKILL signal to" << SmallShell::listOfJobs->vectorOfJobs->size() << "jobs:" << endl;
         for (int i = 0; i < SmallShell::listOfJobs->vectorOfJobs->size(); i++) {
-            cout << SmallShell::listOfJobs->vectorOfJobs[i].data()->job_pid << " : " << this->cmdLine;
+            cout <<(*SmallShell::listOfJobs->vectorOfJobs)[i].job_pid << " : " << this->cmdLine;
         }
         for (int i = 0; i < SmallShell::listOfJobs->vectorOfJobs->size(); i++) {
-            //kill(SmallShell::listOfJobs->vectorOfJobs[i].data()->job_pid, SIGKILL);
+            int result = kill((*SmallShell::listOfJobs->vectorOfJobs)[i].job_pid, SIGKILL);
         }
     }
+}
+
+KillCommand::KillCommand(const char *cmd_line, JobsList *jobs) : BuiltInCommand(cmd_line)
+{
+    this->cmd_line = _trim(cmd_line);
+    size_t check = this->cmd_line.find_first_of(WHITESPACE);
+    if (check == string::npos){
+        cerr << "smash error: kill: invalid arguments" << endl;
+    }
+    string lineAfterKill = this->cmd_line.substr(check);
+    check = lineAfterKill.find_first_of(WHITESPACE);
+    if (check == string::npos){
+        cerr << "smash error: kill: invalid arguments" << endl;
+    }
+    this->sigNum = std::stoi(lineAfterKill);
+    lineAfterKill = lineAfterKill.substr(check);
+    check = lineAfterKill.find_first_of(WHITESPACE);
+    if (check == string::npos){
+        cerr << "smash error: kill: invalid arguments" << endl;
+    }
+    this->job_id = std::stoi(lineAfterKill);
+    check = lineAfterKill.find_first_not_of(WHITESPACE);
+    if (check != string::npos){
+        cerr << "smash error: kill: invalid arguments" << endl;
+    }
+
+}
+
+void KillCommand::execute() {
+
 }
 
 void SmallShell::executeCommand(const char *cmd_line) {
@@ -610,6 +643,8 @@ void BackgroundCommand::execute(){
         }
         SmallShell::listOfJobs->getJobById(this->plastJobId)->isStopped = false;
         cout << this->cmd_line << " : " << this->plastJobId << endl;
+        pid_t pidToSend = SmallShell::listOfJobs->getJobById(this->plastJobId)->job_pid;
+        int result = kill(pidToSend,SIGCONT);
 
     }
 
