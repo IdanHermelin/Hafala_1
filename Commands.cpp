@@ -552,10 +552,10 @@ void ForegroundCommand::execute()
     else{
 
         SmallShell::listOfJobs->removeJobById(this->plastJobId);
-        cout << this->cmd_line <<": " << plastPid << endl;
-        //kill(plastPid,SIGCONT);
+        cout << SmallShell::listOfJobs->getJobById(plastPid)->cmd_line  <<" : " << plastPid << endl;
+        kill(plastPid,SIGCONT);
         int status;
-        //waitpid(plastPid, &status, 0);
+        waitpid(plastPid, &status, 0);
     }
 }
 void JobsList::removeJobById(int jobId) {
