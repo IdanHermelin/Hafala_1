@@ -614,15 +614,12 @@ BackgroundCommand::BackgroundCommand(const char *cmd_line, JobsList *jobs) : Bui
         plastJobId = 0;
         isPlastJobExist = false;
     }
-    //checking other things:
 
 }
 
 
 
 void BackgroundCommand::execute(){
-
-
     int lastStoppedJobId = -1;
 
     if (this->isPlastJobExist == true) {

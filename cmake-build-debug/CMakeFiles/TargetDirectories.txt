@@ -1,3 +1,3 @@
-C:/Users/Nir/CLionProjects/Hafala_1/cmake-build-debug/CMakeFiles/skeleton_smash.dir
-C:/Users/Nir/CLionProjects/Hafala_1/cmake-build-debug/CMakeFiles/edit_cache.dir
-C:/Users/Nir/CLionProjects/Hafala_1/cmake-build-debug/CMakeFiles/rebuild_cache.dir
+C:/Users/idanh/CLionProjects/Hafala_1/cmake-build-debug/CMakeFiles/skeleton_smash.dir
+C:/Users/idanh/CLionProjects/Hafala_1/cmake-build-debug/CMakeFiles/edit_cache.dir
+C:/Users/idanh/CLionProjects/Hafala_1/cmake-build-debug/CMakeFiles/rebuild_cache.dir
