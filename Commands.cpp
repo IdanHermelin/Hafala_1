@@ -109,7 +109,11 @@ Command * SmallShell::CreateCommand(const char* cmd_line) {
   string cmd_s = _trim(string(cmd_line));
   string firstWord = cmd_s.substr(0, cmd_s.find_first_of(" \n"));
 
-  if (firstWord.compare("pwd") == 0) {
+    if (cmd_s.find(">")||cmd_s.find(">>")){
+        return new RedirectionCommand(cmd_line);
+    }
+
+    else if (firstWord.compare("pwd") == 0) {
       if (_isBackgroundComamnd(cmd_line)){
           char* toSend = const_cast<char*>(cmd_line);
           _removeBackgroundSign(toSend);
@@ -175,9 +179,6 @@ Command * SmallShell::CreateCommand(const char* cmd_line) {
       SmallShell::toQuit = true;
       return new QuitCommand(cmd_line,SmallShell::listOfJobs);
   }
-  else if (cmd_s.find(">")||cmd_s.find(">>")){
-      return new RedirectionCommand(cmd_line);
-  }
 
   else {
       return new ExternalCommand(cmd_line);
@@ -223,12 +224,11 @@ void RedirectionCommand::execute() {
         if (fork() == 0) {
             int fileDescriptor;
             if(this->redirectSign == ">"){
-                std::ofstream file(this->destFile,std::ios::trunc);
-                fileDescriptor = fileno(file);
+                fileDescriptor = open(this->destFile.c_str(),std::ios::trunc);
             }
             if(this->redirectSign == ">>"){
-                std::ofstream file(this->destFile,std::ios::app);
-                fileDescriptor = fileno(file);
+
+                fileDescriptor = open(this->destFile.c_str(),std::ios::app);
             }
 
             dup2(fileDescriptor, 1);
