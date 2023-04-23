@@ -245,32 +245,35 @@ void GetFileTypeCommand::execute() {
     if (!std::experimental::filesystem::exists(this->pathToFile)) {
         std::cerr << "smash error: gettype: invalid aruments" << std::endl;
     }
+    FILE* file = fopen(this->pathToFile.c_str(), "rb");
+    fseek(file, 0, SEEK_END);
+    long fileSize = ftell(file);
 
     if (std::experimental::filesystem::is_regular_file(this->pathToFile)) {
-        std::cout << this->pathToFile << "type is “regular file” and takes up " << std::experimental::filesystem::file_size(this->pathToFile)<<" bytes"<< std::endl;
+        std::cout << this->pathToFile << "type is “regular file” and takes up " << fileSize <<" bytes"<< std::endl;
     }
     else if (std::experimental::filesystem::is_directory(this->pathToFile)) {
-        std::cout << this->pathToFile << "type is “directory” and takes up " << std::experimental::filesystem::file_size(this->pathToFile)<<" bytes"<< std::endl;
+        std::cout << this->pathToFile << "type is “directory” and takes up " << fileSize <<" bytes"<< std::endl;
     }
     else if(std::experimental::filesystem::is_character_file(this->pathToFile))
     {
-        std::cout << this->pathToFile << "type is “character device” and takes up " << std::experimental::filesystem::file_size(this->pathToFile)<<" bytes"<< std::endl;
+        std::cout << this->pathToFile << "type is “character device” and takes up " << fileSize<<" bytes"<< std::endl;
     }
     else if(std::experimental::filesystem::is_block_file(this->pathToFile))
     {
-        std::cout << this->pathToFile << "type is “block device” and takes up " << std::experimental::filesystem::file_size(this->pathToFile)<<" bytes"<< std::endl;
+        std::cout << this->pathToFile << "type is “block device” and takes up " << fileSize<<" bytes"<< std::endl;
     }
     else if(std::experimental::filesystem::is_fifo(this->pathToFile))
     {
-        std::cout << this->pathToFile << "type is “FIFO” and takes up " << std::experimental::filesystem::file_size(this->pathToFile)<<" bytes"<< std::endl;
+        std::cout << this->pathToFile << "type is “FIFO” and takes up " << fileSize <<" bytes"<< std::endl;
     }
 //    else if()
 //    {
 //        std::cout << this->pathToFile << "type is “character device” and takes up " << std::filesystem::file_size(this->pathToFile)<<" bytes"<< std::endl;
 //    }
-    else if (std::experimental::filesystem::is_symlink(this->pathToFile)) {
-        std::cout << this->pathToFile << "type is “symbolic link” and takes up "
-                  << std::experimental::filesystem::file_size(this->pathToFile) << " bytes" << std::endl;
+    else if (std::experimental::filesystem::is_symlink(this->pathToFile))
+    {
+        std::cout << this->pathToFile << "type is “symbolic link” and takes up "<< fileSize << " bytes" << std::endl;
     }
 }
 
