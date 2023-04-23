@@ -10,6 +10,8 @@
 #include <signal.h>
 #include <ctime>
 #include <fstream>
+#include <fcntl.h>
+#include <filesystem>
 
 using namespace std;
 
@@ -26,6 +28,7 @@ const std::string WHITESPACE = " \n\r\t\f\v";
 #define FUNC_EXIT()
 #endif
 
+void fillArgsArray(const char* cmdLine,char* args[21]);
 string _ltrim(const std::string& s) // returns the string without any initial spaces
 {
   size_t start = s.find_first_not_of(WHITESPACE);
@@ -112,6 +115,9 @@ Command * SmallShell::CreateCommand(const char* cmd_line) {
     if (cmd_s.find(">")||cmd_s.find(">>")){
         return new RedirectionCommand(cmd_line);
     }
+    else if(cmd_s.find("|")){
+        return new PipeCommand(cmd_line);
+    }
 
     else if (firstWord.compare("pwd") == 0) {
       if (_isBackgroundComamnd(cmd_line)){
@@ -191,6 +197,82 @@ Command * SmallShell::CreateCommand(const char* cmd_line) {
 
   return nullptr;
 }
+void fillArgsArray(const char* cmdLine,char* args[21]){
+    string ScanCommandLine = cmdLine;
+    bool isCommandLineOver = false;
+    int index = 0;
+
+
+    while (isCommandLineOver == false) {
+        size_t next = ScanCommandLine.find_first_of(WHITESPACE);
+        if (next == string::npos) {
+            isCommandLineOver = true;
+        }
+        string toPush, restCommandLine;
+        if (isCommandLineOver == false) {
+            toPush = ScanCommandLine.substr(0, next);
+        } else {
+            toPush = ScanCommandLine;
+        }
+
+
+        if (isCommandLineOver == false) {
+            restCommandLine = ScanCommandLine.substr(next + 1);
+        }
+        const char *to_Push = toPush.c_str();
+        args[index] = new char[toPush.length() + 1];
+        strcpy(args[index], to_Push);
+        index++;
+
+        if (isCommandLineOver == false) {
+            ScanCommandLine = restCommandLine;
+        }
+
+    }
+    args[index++] = nullptr;
+}
+GetFileTypeCommand::GetFileTypeCommand(const char *cmd_line): BuiltInCommand(cmd_line)
+{
+    string cmd_s = _trim(cmd_line);
+    size_t check = cmd_s.find_first_of(WHITESPACE);
+    this->pathToFile = _trim(cmd_s.substr(check));
+
+}
+
+void GetFileTypeCommand::execute() {
+
+
+    if (!std::filesystem::exists(this->pathToFile)) {
+        std::cerr << "smash error: gettype: invalid aruments" << std::endl;
+    }
+
+    if (std::filesystem::is_regular_file(this->pathToFile)) {
+        std::cout << this->pathToFile << "type is “regular file” and takes up " << std::filesystem::file_size(this->pathToFile)<<" bytes"<< std::endl;
+    }
+    else if (std::filesystem::is_directory(this->pathToFile)) {
+        std::cout << this->pathToFile << "type is “directory” and takes up " << std::filesystem::file_size(this->pathToFile)<<" bytes"<< std::endl;
+    }
+    else if(std::filesystem::is_character_file(this->pathToFile))
+    {
+        std::cout << this->pathToFile << "type is “character device” and takes up " << std::filesystem::file_size(this->pathToFile)<<" bytes"<< std::endl;
+    }
+    else if(std::filesystem::is_block_file(this->pathToFile))
+    {
+        std::cout << this->pathToFile << "type is “block device” and takes up " << std::filesystem::file_size(this->pathToFile)<<" bytes"<< std::endl;
+    }
+    else if(std::filesystem::is_fifo(this->pathToFile))
+    {
+        std::cout << this->pathToFile << "type is “FIFO” and takes up " << std::filesystem::file_size(this->pathToFile)<<" bytes"<< std::endl;
+    }
+//    else if()
+//    {
+//        std::cout << this->pathToFile << "type is “character device” and takes up " << std::filesystem::file_size(this->pathToFile)<<" bytes"<< std::endl;
+//    }
+    else if (std::filesystem::is_symlink(this->pathToFile)) {
+        std::cout << this->pathToFile << "type is “symbolic link” and takes up "
+                  << std::filesystem::file_size(this->pathToFile) << " bytes" << std::endl;
+    }
+}
 
 RedirectionCommand::RedirectionCommand(const char *cmd_line) : Command(cmd_line)
 {
@@ -215,60 +297,70 @@ RedirectionCommand::RedirectionCommand(const char *cmd_line) : Command(cmd_line)
     string cmdBeforeSign = _trim(beforeSign);
     this->command = new char[cmdBeforeSign.length()+1];
     strcpy(this->command, cmdBeforeSign.c_str());
-
-
 }
 
 void RedirectionCommand::execute() {
 
-        if (fork() == 0) {
-            int fileDescriptor;
-            if(this->redirectSign == ">"){
-                fileDescriptor = open(this->destFile.c_str(),std::ios::trunc);
-            }
-            if(this->redirectSign == ">>"){
+    string ScanCommandLine = this->command;
+    int fileDescriptor;
+    if(this->redirectSign == ">"){
+        fileDescriptor = open(this->destFile.c_str(),std::ios::trunc);
+    }
+    if(this->redirectSign == ">>"){
+        fileDescriptor = open(this->destFile.c_str(),std::ios::app);
+    }
 
-                fileDescriptor = open(this->destFile.c_str(),std::ios::app);
-            }
+    if (fork() == 0) {
 
-            dup2(fileDescriptor, 1);
-
-            string ScanCommandLine = this->command;
-            bool isCommandLineOver = false;
-            char *args[21];
-            int index = 0;
-
-            while (isCommandLineOver == false) {
-                size_t next = ScanCommandLine.find_first_of(WHITESPACE);
-                if (next == string::npos) {
-                    isCommandLineOver = true;
-                }
-                string toPush, restCommandLine;
-                if (isCommandLineOver == false) {
-                    toPush = ScanCommandLine.substr(0, next);
-                } else {
-                    toPush = ScanCommandLine;
-                }
-
-
-                if (isCommandLineOver == false) {
-                    restCommandLine = ScanCommandLine.substr(next + 1);
-                }
-                const char *to_Push = toPush.c_str();
-                args[index] = new char[toPush.length() + 1];
-                strcpy(args[index], to_Push);
-                cout << args[index] << endl;
-                index++;
-
-                if (isCommandLineOver == false) {
-                    ScanCommandLine = restCommandLine;
-                }
-
-            }
-            args[index++] = nullptr;
-            execvp(args[0], args);
-        }
+        dup2(fileDescriptor, 1);
+        char *args[21];
+        fillArgsArray(this->command,args);
+        execvp(args[0], args);
+    }
 }
+
+PipeCommand::PipeCommand(const char *cmd_line): Command(cmd_line)
+{
+    string cmd_s = _trim(cmd_line);
+    size_t check = cmd_s.find_first_of("&");
+    if (check != string::npos){
+        this->sign = "|&";
+    }
+    else {
+        this->sign = "|";
+        check = cmd_s.find_first_of("|");
+    }
+    this->writeCommand = _trim(cmd_s.substr(0,check-1));
+    this->readCommand = _trim(cmd_s.substr(check+1));
+}
+
+void PipeCommand::execute() {
+    int fd[2];
+    pipe(fd);
+    if(fork() == 0){
+        if(this->sign.compare("|")){
+            dup2(fd[1],STDOUT_FILENO);
+        }
+        if(this->sign.compare("|&")){
+            dup2(fd[1],STDERR_FILENO);
+        }
+        close(fd[0]);
+        close(fd[1]);
+        char* args[21];
+        fillArgsArray(this->writeCommand.c_str(),args);
+        execvp(args[0],args);
+    }
+    if(fork() == 0){
+        dup2(fd[0],STDIN_FILENO);
+        close(fd[0]);
+        close(fd[1]);
+        char *args2[21];
+        fillArgsArray(this->readCommand.c_str(),args2);
+        execvp(args2[0],args2);
+    }
+}
+
+
 
 QuitCommand::QuitCommand(const char *cmd_line, JobsList *jobs) : BuiltInCommand(cmd_line)
 {
@@ -288,6 +380,7 @@ QuitCommand::QuitCommand(const char *cmd_line, JobsList *jobs) : BuiltInCommand(
         this->isSpecified = false;
     }
 }
+
 
 void QuitCommand::execute() {
 
@@ -394,40 +487,9 @@ void ExternalCommand::execute()
     if(this->isComplex() == false){
         pid_t pid = fork();
         if(pid == 0) {
-            string ScanCommandLine = this->cmd_line;
-            bool isCommandLineOver = false;
+            const char* ScanCommandLine = this->cmd_line.c_str();
             char *args[21];
-            int index = 0;
-
-
-            while (isCommandLineOver == false) {
-                size_t next = ScanCommandLine.find_first_of(WHITESPACE);
-                if (next == string::npos) {
-                    isCommandLineOver = true;
-                }
-                string toPush, restCommandLine;
-                if (isCommandLineOver == false) {
-                    toPush = ScanCommandLine.substr(0, next);
-                } else {
-                    toPush = ScanCommandLine;
-                }
-
-
-                if (isCommandLineOver == false) {
-                    restCommandLine = ScanCommandLine.substr(next + 1);
-                }
-                const char *to_Push = toPush.c_str();
-                args[index] = new char[toPush.length() + 1];
-                strcpy(args[index], to_Push);
-                cout << args[index] << endl;
-                index++;
-
-                if (isCommandLineOver == false) {
-                    ScanCommandLine = restCommandLine;
-                }
-
-            }
-            args[index++] = nullptr;
+            fillArgsArray(ScanCommandLine,args);
             execvp(args[0], args);
 
         }
@@ -695,7 +757,7 @@ BackgroundCommand::BackgroundCommand(const char *cmd_line, JobsList *jobs) : Bui
         plastJobId = 0;
         isPlastJobExist = false;
     }
-
+///////////////need to complete this
 }
 
 

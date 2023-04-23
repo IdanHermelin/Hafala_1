@@ -42,6 +42,9 @@ class ExternalCommand : public Command {
 
 class PipeCommand : public Command {
   // TODO: Add your data members
+  std::string writeCommand;
+  std::string readCommand;
+  std::string sign;
  public:
   PipeCommand(const char* cmd_line);
   virtual ~PipeCommand() {}
@@ -203,6 +206,7 @@ class ChmodCommand : public BuiltInCommand {
 };
 
 class GetFileTypeCommand : public BuiltInCommand {
+    std::string pathToFile;
   // TODO: Add your data members
  public:
   GetFileTypeCommand(const char* cmd_line);
