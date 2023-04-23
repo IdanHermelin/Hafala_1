@@ -9,7 +9,7 @@
 #include "signals.h"
 #include <signal.h>
 #include <ctime>
-
+#include <fstream>
 
 using namespace std;
 
@@ -175,6 +175,9 @@ Command * SmallShell::CreateCommand(const char* cmd_line) {
       SmallShell::toQuit = true;
       return new QuitCommand(cmd_line,SmallShell::listOfJobs);
   }
+  else if (cmd_s.find(">")||cmd_s.find(">>")){
+      return new RedirectionCommand(cmd_line);
+  }
 
   else {
       return new ExternalCommand(cmd_line);
@@ -186,6 +189,85 @@ Command * SmallShell::CreateCommand(const char* cmd_line) {
 //  }
 
   return nullptr;
+}
+
+RedirectionCommand::RedirectionCommand(const char *cmd_line) : Command(cmd_line)
+{
+    string cmd_s = _trim(cmd_line);
+    if(cmd_s.find(">>")){
+        this->redirectSign = ">>";
+    }
+    if(cmd_s.find(">")){
+        this->redirectSign = ">";
+    }
+    size_t check = cmd_s.find_last_of(">");
+    string afterSign = cmd_s.substr(check+1);
+    string beforeSign;
+    if (this->redirectSign == ">"){
+        beforeSign = cmd_s.substr(0,check-1);
+    }
+    if (this->redirectSign == ">>"){
+        string beforeSign = cmd_s.substr(0,check-2);
+    }
+
+    this->destFile = _trim(afterSign);
+    string cmdBeforeSign = _trim(beforeSign);
+    this->command = new char[cmdBeforeSign.length()+1];
+    strcpy(this->command, cmdBeforeSign.c_str());
+
+
+}
+
+void RedirectionCommand::execute() {
+
+        if (fork() == 0) {
+            int fileDescriptor;
+            if(this->redirectSign == ">"){
+                std::ofstream file(this->destFile,std::ios::trunc);
+                fileDescriptor = fileno(file);
+            }
+            if(this->redirectSign == ">>"){
+                std::ofstream file(this->destFile,std::ios::app);
+                fileDescriptor = fileno(file);
+            }
+
+            dup2(fileDescriptor, 1);
+
+            string ScanCommandLine = this->command;
+            bool isCommandLineOver = false;
+            char *args[21];
+            int index = 0;
+
+            while (isCommandLineOver == false) {
+                size_t next = ScanCommandLine.find_first_of(WHITESPACE);
+                if (next == string::npos) {
+                    isCommandLineOver = true;
+                }
+                string toPush, restCommandLine;
+                if (isCommandLineOver == false) {
+                    toPush = ScanCommandLine.substr(0, next);
+                } else {
+                    toPush = ScanCommandLine;
+                }
+
+
+                if (isCommandLineOver == false) {
+                    restCommandLine = ScanCommandLine.substr(next + 1);
+                }
+                const char *to_Push = toPush.c_str();
+                args[index] = new char[toPush.length() + 1];
+                strcpy(args[index], to_Push);
+                cout << args[index] << endl;
+                index++;
+
+                if (isCommandLineOver == false) {
+                    ScanCommandLine = restCommandLine;
+                }
+
+            }
+            args[index++] = nullptr;
+            execvp(args[0], args);
+        }
 }
 
 QuitCommand::QuitCommand(const char *cmd_line, JobsList *jobs) : BuiltInCommand(cmd_line)
@@ -346,16 +428,13 @@ void ExternalCommand::execute()
 
             }
             args[index++] = nullptr;
-            for (int i = 0;i < index - 1;i++){
-                cout <<args[i]<<" ";
-            }
             execvp(args[0], args);
 
         }
-        else{
+        if(pid > 0){
             if (isBgCmd == false){
                 int status;
-                //waitpid(pid, &status, 0);
+                waitpid(pid, &status, 0);
             }
             else
             {
@@ -547,9 +626,11 @@ void ForegroundCommand::execute()
     }
 
     else{
+        string ToPrint = SmallShell::listOfJobs->getJobById(plastPid)->cmd_line;
 
         SmallShell::listOfJobs->removeJobById(this->plastJobId);
-        cout << SmallShell::listOfJobs->getJobById(plastPid)->cmd_line  <<" : " << plastPid << endl;
+        cout << ToPrint  <<" : " << plastPid << endl;
+        kill(plastPid,SIGSTOP);
         kill(plastPid,SIGCONT);
         int status;
         waitpid(plastPid, &status, 0);
