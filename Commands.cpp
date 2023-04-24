@@ -232,14 +232,14 @@ void fillArgsArray(const char* cmdLine,char* args[21]){
     }
     args[index++] = nullptr;
 }
-//GetFileTypeCommand::GetFileTypeCommand(const char *cmd_line): BuiltInCommand(cmd_line)
-//{
-//    string cmd_s = _trim(cmd_line);
-//    size_t check = cmd_s.find_first_of(WHITESPACE);
-//    this->pathToFile = _trim(cmd_s.substr(check));
-//
-//}
-//
+GetFileTypeCommand::GetFileTypeCommand(const char *cmd_line): BuiltInCommand(cmd_line)
+{
+   string cmd_s = _trim(cmd_line);
+   size_t check = cmd_s.find_first_of(WHITESPACE);
+   this->pathToFile = _trim(cmd_s.substr(check));
+
+}
+
 void GetFileTypeCommand::execute() {
 
 
