@@ -4,6 +4,7 @@
 #include <vector>
 #include <sstream>
 #include <sys/wait.h>
+#include <sys/stat.h>
 #include <iomanip>
 #include "Commands.h"
 #include "signals.h"
@@ -11,10 +12,10 @@
 #include <ctime>
 #include <fstream>
 #include <fcntl.h>
-#include <experimental/filesystem>
+
 
 using namespace std;
-namespace fs = std::experimental::filesystem;
+
 
 const std::string WHITESPACE = " \n\r\t\f\v";
 
@@ -232,49 +233,45 @@ void fillArgsArray(const char* cmdLine,char* args[21]){
     }
     args[index++] = nullptr;
 }
-//GetFileTypeCommand::GetFileTypeCommand(const char *cmd_line): BuiltInCommand(cmd_line)
-//{
-//    string cmd_s = _trim(cmd_line);
-//    size_t check = cmd_s.find_first_of(WHITESPACE);
-//    this->pathToFile = _trim(cmd_s.substr(check));
-//
-//}
-//
+GetFileTypeCommand::GetFileTypeCommand(const char *cmd_line): BuiltInCommand(cmd_line)
+{
+    string cmd_s = _trim(cmd_line);
+    size_t check = cmd_s.find_first_of(WHITESPACE);
+    this->pathToFile = _trim(cmd_s.substr(check));
+
+}
+
 void GetFileTypeCommand::execute() {
+    struct stat status;
+    const char* filename = this->pathToFile.c_str();
+    FILE *file = fopen(filename,"rb");
+    if (file == nullptr){
+        cerr << "smash error: gettype: invalid aruments" << endl;
+    }
+    else{
+        if(stat(filename, &status) != 0){
+            cerr << "smash error: gettype: invalid aruments" << endl;
+        }
+        fseek(file, 0, SEEK_END);
+        long size = ftell(file);
 
-
-    if (!fs::exists(this->pathToFile)) {
-        std::cerr << "smash error: gettype: invalid aruments" << std::endl;
-    }
-    FILE* file = fopen(this->pathToFile.c_str(), "rb");
-    fseek(file, 0, SEEK_END);
-    long fileSize = ftell(file);
-
-    if (fs::is_regular_file(this->pathToFile)) {
-        std::cout << this->pathToFile << "type is “regular file” and takes up " << fileSize <<" bytes"<< std::endl;
-    }
-    else if (fs::is_directory(this->pathToFile)) {
-        std::cout << this->pathToFile << "type is “directory” and takes up " << fileSize <<" bytes"<< std::endl;
-    }
-    else if(fs::is_character_file(this->pathToFile))
-    {
-        std::cout << this->pathToFile << "type is “character device” and takes up " << fileSize<<" bytes"<< std::endl;
-    }
-    else if(fs::is_block_file(this->pathToFile))
-    {
-        std::cout << this->pathToFile << "type is “block device” and takes up " << fileSize<<" bytes"<< std::endl;
-    }
-    else if(fs::is_fifo(this->pathToFile))
-    {
-        std::cout << this->pathToFile << "type is “FIFO” and takes up " << fileSize <<" bytes"<< std::endl;
-    }
-//    else if()
-//    {
-//        std::cout << this->pathToFile << "type is “character device” and takes up " << std::filesystem::file_size(this->pathToFile)<<" bytes"<< std::endl;
-//    }
-    else if (fs::is_symlink(this->pathToFile))
-    {
-        std::cout << this->pathToFile << "type is “symbolic link” and takes up "<< fileSize << " bytes" << std::endl;
+        if (S_ISREG(status.st_mode)) {
+            std::cout << filename << " is a regular file" << std::endl;
+        } else if (S_ISDIR(status.st_mode)) {
+            std::cout << filename << " is a directory" << std::endl;
+        } else if (S_ISCHR(status.st_mode)) {
+            std::cout << filename << " is a character device" << std::endl;
+        } else if (S_ISBLK(status.st_mode)) {
+            std::cout << filename << " is a block device" << std::endl;
+        } else if (S_ISFIFO(status.st_mode)) {
+            std::cout << filename << " is a FIFO/pipe" << std::endl;
+        } else if (S_ISSOCK(status.st_mode)) {
+            std::cout << filename << " is a socket" << std::endl;
+        } else if (S_ISLNK(status.st_mode)) {
+            std::cout << filename << " is a symbolic link" << std::endl;
+        } else {
+            std::cout << filename << " is of unknown type" << std::endl;
+        }
     }
 }
 
@@ -305,13 +302,36 @@ RedirectionCommand::RedirectionCommand(const char *cmd_line) : Command(cmd_line)
 
 void RedirectionCommand::execute() {
 
+    string cmd_s = this->command;
     string ScanCommandLine = this->command;
     int fileDescriptor;
     if(this->redirectSign == ">"){
         fileDescriptor = open(this->destFile.c_str(),std::ios::trunc);
+        if (cmd_s.compare("showpid")==0){
+            std::ofstream file(this->destFile,std::ios::trunc);
+            file << "smash pid is " << getpid()<< endl;
+        }
+        if (cmd_s.compare("pwd")==0){
+            std::ofstream file(this->destFile,std::ios::trunc);
+            char workingDirectory[1024];
+            getcwd(workingDirectory, sizeof(workingDirectory));
+            file <<workingDirectory<< endl;
+
+        }
     }
     if(this->redirectSign == ">>"){
         fileDescriptor = open(this->destFile.c_str(),std::ios::app);
+        if (cmd_s.compare("showpid")==0){
+            std::ofstream file(this->destFile,std::ios::app);
+            file << "smash pid is " << getpid()<< endl;
+        }
+        if (cmd_s.compare("pwd")==0){
+            std::ofstream file(this->destFile,std::ios::app);
+            char workingDirectory[1024];
+            getcwd(workingDirectory, sizeof(workingDirectory));
+            file <<workingDirectory<< endl;
+
+        }
     }
 
     if (fork() == 0) {
