@@ -14,6 +14,7 @@
 #include <experimental/filesystem>
 
 using namespace std;
+namespace fs = std::experimental::filesystem;
 
 const std::string WHITESPACE = " \n\r\t\f\v";
 
@@ -112,10 +113,10 @@ Command * SmallShell::CreateCommand(const char* cmd_line) {
   string cmd_s = _trim(string(cmd_line));
   string firstWord = cmd_s.substr(0, cmd_s.find_first_of(" \n"));
 
-    if (cmd_s.find(">")||cmd_s.find(">>")){
+    if (cmd_s.find(">") == 0||cmd_s.find(">>") == 0){
         return new RedirectionCommand(cmd_line);
     }
-    else if(cmd_s.find("|")){
+    else if(cmd_s.find("|") == 0){
         return new PipeCommand(cmd_line);
     }
 
@@ -239,43 +240,43 @@ void fillArgsArray(const char* cmdLine,char* args[21]){
 //
 //}
 //
-//void GetFileTypeCommand::execute() {
-//
-//
-//    if (!std::experimental::filesystem::exists(this->pathToFile)) {
-//        std::cerr << "smash error: gettype: invalid aruments" << std::endl;
-//    }
-//    FILE* file = fopen(this->pathToFile.c_str(), "rb");
-//    fseek(file, 0, SEEK_END);
-//    long fileSize = ftell(file);
-//
-//    if (std::experimental::filesystem::is_regular_file(this->pathToFile)) {
-//        std::cout << this->pathToFile << "type is “regular file” and takes up " << fileSize <<" bytes"<< std::endl;
-//    }
-//    else if (std::experimental::filesystem::is_directory(this->pathToFile)) {
-//        std::cout << this->pathToFile << "type is “directory” and takes up " << fileSize <<" bytes"<< std::endl;
-//    }
-//    else if(std::experimental::filesystem::is_character_file(this->pathToFile))
+void GetFileTypeCommand::execute() {
+
+
+    if (!fs::exists(this->pathToFile)) {
+        std::cerr << "smash error: gettype: invalid aruments" << std::endl;
+    }
+    FILE* file = fopen(this->pathToFile.c_str(), "rb");
+    fseek(file, 0, SEEK_END);
+    long fileSize = ftell(file);
+
+    if (fs::is_regular_file(this->pathToFile)) {
+        std::cout << this->pathToFile << "type is “regular file” and takes up " << fileSize <<" bytes"<< std::endl;
+    }
+    else if (fs::is_directory(this->pathToFile)) {
+        std::cout << this->pathToFile << "type is “directory” and takes up " << fileSize <<" bytes"<< std::endl;
+    }
+    else if(fs::is_character_file(this->pathToFile))
+    {
+        std::cout << this->pathToFile << "type is “character device” and takes up " << fileSize<<" bytes"<< std::endl;
+    }
+    else if(fs::is_block_file(this->pathToFile))
+    {
+        std::cout << this->pathToFile << "type is “block device” and takes up " << fileSize<<" bytes"<< std::endl;
+    }
+    else if(fs::is_fifo(this->pathToFile))
+    {
+        std::cout << this->pathToFile << "type is “FIFO” and takes up " << fileSize <<" bytes"<< std::endl;
+    }
+//    else if()
 //    {
-//        std::cout << this->pathToFile << "type is “character device” and takes up " << fileSize<<" bytes"<< std::endl;
+//        std::cout << this->pathToFile << "type is “character device” and takes up " << std::filesystem::file_size(this->pathToFile)<<" bytes"<< std::endl;
 //    }
-//    else if(std::experimental::filesystem::is_block_file(this->pathToFile))
-//    {
-//        std::cout << this->pathToFile << "type is “block device” and takes up " << fileSize<<" bytes"<< std::endl;
-//    }
-//    else if(std::experimental::filesystem::is_fifo(this->pathToFile))
-//    {
-//        std::cout << this->pathToFile << "type is “FIFO” and takes up " << fileSize <<" bytes"<< std::endl;
-//    }
-////    else if()
-////    {
-////        std::cout << this->pathToFile << "type is “character device” and takes up " << std::filesystem::file_size(this->pathToFile)<<" bytes"<< std::endl;
-////    }
-//    else if (std::experimental::filesystem::is_symlink(this->pathToFile))
-//    {
-//        std::cout << this->pathToFile << "type is “symbolic link” and takes up "<< fileSize << " bytes" << std::endl;
-//    }
-//}
+    else if (fs::is_symlink(this->pathToFile))
+    {
+        std::cout << this->pathToFile << "type is “symbolic link” and takes up "<< fileSize << " bytes" << std::endl;
+    }
+}
 
 RedirectionCommand::RedirectionCommand(const char *cmd_line) : Command(cmd_line)
 {
@@ -341,10 +342,10 @@ void PipeCommand::execute() {
     int fd[2];
     pipe(fd);
     if(fork() == 0){
-        if(this->sign.compare("|")){
+        if(this->sign.compare("|") == 0){
             dup2(fd[1],STDOUT_FILENO);
         }
-        if(this->sign.compare("|&")){
+        if(this->sign.compare("|&") == 0){
             dup2(fd[1],STDERR_FILENO);
         }
         close(fd[0]);
