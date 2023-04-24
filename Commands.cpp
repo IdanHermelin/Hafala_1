@@ -3,7 +3,7 @@
 #include <iostream>
 #include <vector>
 #include <sstream>
-#include <sys/wait.h>
+//#include <sys/wait.h>
 #include <sys/stat.h>
 #include <iomanip>
 #include "Commands.h"
@@ -114,10 +114,10 @@ Command * SmallShell::CreateCommand(const char* cmd_line) {
   string cmd_s = _trim(string(cmd_line));
   string firstWord = cmd_s.substr(0, cmd_s.find_first_of(" \n"));
 
-    if (cmd_s.find(">") == 0||cmd_s.find(">>") == 0){
+    if (cmd_s.find(">") != string::npos||cmd_s.find(">>") != string::npos){
         return new RedirectionCommand(cmd_line);
     }
-    else if(cmd_s.find("|") == 0){
+    else if(cmd_s.find("|") != string::npos){
         return new PipeCommand(cmd_line);
     }
 
@@ -187,6 +187,10 @@ Command * SmallShell::CreateCommand(const char* cmd_line) {
       SmallShell::toQuit = true;
       return new QuitCommand(cmd_line,SmallShell::listOfJobs);
   }
+  else if(firstWord.compare("getfileinfo") == 0){
+      return new GetFileTypeCommand(cmd_line);
+  }
+
 
   else {
       return new ExternalCommand(cmd_line);
@@ -241,6 +245,9 @@ GetFileTypeCommand::GetFileTypeCommand(const char *cmd_line): BuiltInCommand(cmd
 
 }
 
+//void GetFileTypeCommand::execute() {
+//
+//}
 void GetFileTypeCommand::execute() {
     struct stat status;
     const char* filename = this->pathToFile.c_str();
@@ -300,6 +307,9 @@ RedirectionCommand::RedirectionCommand(const char *cmd_line) : Command(cmd_line)
     strcpy(this->command, cmdBeforeSign.c_str());
 }
 
+//void RedirectionCommand::execute() {
+//
+//}
 void RedirectionCommand::execute() {
 
     string cmd_s = this->command;
@@ -358,6 +368,7 @@ PipeCommand::PipeCommand(const char *cmd_line): Command(cmd_line)
     this->readCommand = _trim(cmd_s.substr(check+1));
 }
 
+//void PipeCommand::execute() {}
 void PipeCommand::execute() {
     int fd[2];
     pipe(fd);
@@ -414,7 +425,7 @@ void QuitCommand::execute() {
             cout <<(*SmallShell::listOfJobs->vectorOfJobs)[i].job_pid << " : " << (*SmallShell::listOfJobs->vectorOfJobs)[i].cmd_line << endl;
         }
         for (int i = 0; i < SmallShell::listOfJobs->vectorOfJobs->size(); i++) {
-            int result = kill((*SmallShell::listOfJobs->vectorOfJobs)[i].job_pid, SIGKILL);
+      //      int result = kill((*SmallShell::listOfJobs->vectorOfJobs)[i].job_pid, SIGKILL);
         }
     }
 }
@@ -480,7 +491,8 @@ bool ExternalCommand::isComplex() {
 //    JobsList::JobEntry jobToAdd(entry_time,cmd_line,pid);
 //    SmallShell::listOfJobs->JobsList::addJob(&jobToAdd);
 //}
-
+//
+////
 void ExternalCommand::execute()
 {
 
@@ -712,8 +724,7 @@ void ForegroundCommand::execute()
     }
 
     else{
-        string ToPrint = SmallShell::listOfJobs->getJobById(plastPid)->cmd_line;
-
+        string ToPrint = SmallShell::listOfJobs->getJobById(this->plastJobId)->cmd_line;
         SmallShell::listOfJobs->removeJobById(this->plastJobId);
         cout << ToPrint  <<" : " << plastPid << endl;
         kill(plastPid,SIGSTOP);
@@ -798,7 +809,7 @@ void BackgroundCommand::execute(){
         SmallShell::listOfJobs->getJobById(this->plastJobId)->isStopped = false;
         cout << this->cmd_line << " : " << this->plastJobId << endl;
         pid_t pidToSend = SmallShell::listOfJobs->getJobById(this->plastJobId)->job_pid;
-        int result = kill(pidToSend,SIGCONT);
+        //int result = kill(pidToSend,SIGCONT);
 
     }
 
