@@ -263,21 +263,22 @@ void GetFileTypeCommand::execute() {
         long size = ftell(file);
 
         if (S_ISREG(status.st_mode)) {
-            std::cout << filename << " is a regular file" << std::endl;
+            //temp.txt’s type is “regular file” and takes up 420 bytes
+            cout << this->pathToFile << " type is “regular file” and takes up " << size<< " bytes";
         } else if (S_ISDIR(status.st_mode)) {
-            std::cout << filename << " is a directory" << std::endl;
+            cout << this->pathToFile << " type is “directory” and takes up " << size<< " bytes";
         } else if (S_ISCHR(status.st_mode)) {
-            std::cout << filename << " is a character device" << std::endl;
+            cout << this->pathToFile << " type is “character device” and takes up " << size<< " bytes";
         } else if (S_ISBLK(status.st_mode)) {
-            std::cout << filename << " is a block device" << std::endl;
+            cout << this->pathToFile << " type is “block device” and takes up " << size<< " bytes";
         } else if (S_ISFIFO(status.st_mode)) {
-            std::cout << filename << " is a FIFO/pipe" << std::endl;
-        } else if (S_ISSOCK(status.st_mode)) {
-            std::cout << filename << " is a socket" << std::endl;
-        } else if (S_ISLNK(status.st_mode)) {
-            std::cout << filename << " is a symbolic link" << std::endl;
-        } else {
-            std::cout << filename << " is of unknown type" << std::endl;
+            cout << this->pathToFile << " type is “FIFO” and takes up " << size << " bytes";
+        }
+         else if (S_ISLNK(status.st_mode)) {
+             cout << this->pathToFile << " type is “symbolic link” and takes up " << size<< " bytes";
+         }
+        else if (S_ISSOCK(status.st_mode)) {
+             cout << this->pathToFile << " type is “socket” and takes up " << size<< " bytes";
         }
     }
 }
@@ -315,32 +316,31 @@ void RedirectionCommand::execute() {
     string cmd_s = this->command;
     string ScanCommandLine = this->command;
     int fileDescriptor;
-    if(this->redirectSign == ">"){
-        fileDescriptor = open(this->destFile.c_str(),std::ios::trunc);
-        if (cmd_s.compare("showpid")==0){
-            std::ofstream file(this->destFile,std::ios::trunc);
-            file << "smash pid is " << getpid()<< endl;
+    if (this->redirectSign == ">") {
+        fileDescriptor = open(this->destFile.c_str(), std::ios::trunc);
+        if (cmd_s.compare("showpid") == 0) {
+            std::ofstream file(this->destFile, std::ios::trunc);
+            file << "smash pid is " << getpid() << endl;
         }
-        if (cmd_s.compare("pwd")==0){
-            std::ofstream file(this->destFile,std::ios::trunc);
+        if (cmd_s.compare("pwd") == 0) {
+            std::ofstream file(this->destFile, std::ios::trunc);
             char workingDirectory[1024];
             getcwd(workingDirectory, sizeof(workingDirectory));
-            file <<workingDirectory<< endl;
+            file << workingDirectory << endl;
 
         }
     }
-    if(this->redirectSign == ">>"){
-        fileDescriptor = open(this->destFile.c_str(),std::ios::app);
-        if (cmd_s.compare("showpid")==0){
-            std::ofstream file(this->destFile,std::ios::app);
-            file << "smash pid is " << getpid()<< endl;
+    if (this->redirectSign == ">>") {
+        fileDescriptor = open(this->destFile.c_str(), std::ios::app);
+        if (cmd_s.compare("showpid") == 0) {
+            std::ofstream file(this->destFile, std::ios::app);
+            file << "smash pid is " << getpid() << endl;
         }
-        if (cmd_s.compare("pwd")==0){
-            std::ofstream file(this->destFile,std::ios::app);
+        if (cmd_s.compare("pwd") == 0) {
+            std::ofstream file(this->destFile, std::ios::app);
             char workingDirectory[1024];
             getcwd(workingDirectory, sizeof(workingDirectory));
-            file <<workingDirectory<< endl;
-
+            file << workingDirectory << endl;
         }
     }
 
@@ -348,10 +348,11 @@ void RedirectionCommand::execute() {
 
         dup2(fileDescriptor, 1);
         char *args[21];
-        fillArgsArray(this->command,args);
+        fillArgsArray(this->command, args);
         execvp(args[0], args);
     }
 }
+
 
 PipeCommand::PipeCommand(const char *cmd_line): Command(cmd_line)
 {
@@ -491,7 +492,7 @@ bool ExternalCommand::isComplex() {
 //    JobsList::JobEntry jobToAdd(entry_time,cmd_line,pid);
 //    SmallShell::listOfJobs->JobsList::addJob(&jobToAdd);
 //}
-//
+
 ////
 void ExternalCommand::execute()
 {
