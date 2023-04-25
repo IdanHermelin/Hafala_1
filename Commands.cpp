@@ -3,7 +3,7 @@
 #include <iostream>
 #include <vector>
 #include <sstream>
-//#include <sys/wait.h>
+#include <sys/wait.h>
 #include <sys/stat.h>
 #include <iomanip>
 #include "Commands.h"
@@ -12,6 +12,7 @@
 #include <ctime>
 #include <fstream>
 #include <fcntl.h>
+#include <sched.h>
 
 
 using namespace std;
@@ -190,6 +191,9 @@ Command * SmallShell::CreateCommand(const char* cmd_line) {
   else if(firstWord.compare("getfileinfo") == 0){
       return new GetFileTypeCommand(cmd_line);
   }
+  else if(firstWord.compare("chmod") == 0){
+      return new ChmodCommand(cmd_line);
+  }
 
 
   else {
@@ -237,6 +241,70 @@ void fillArgsArray(const char* cmdLine,char* args[21]){
     }
     args[index++] = nullptr;
 }
+
+ChmodCommand::ChmodCommand(const char *cmd_line): BuiltInCommand(cmd_line)
+{
+
+    if (_parseCommandLine(cmd_line,this->args)!=3){
+        cerr << "smash error: gettype: invalid aruments" << endl;
+    }
+    try {
+        this->newMode = stoi(this->args[1]);
+    }
+    catch(const std::invalid_argument& ia){
+        cerr << "smash error: gettype: invalid aruments" << endl;
+    }
+
+    this->pathToFile = this->args[2];
+}
+
+void ChmodCommand::execute() {
+    int check = chmod(this->pathToFile.c_str(),this->newMode);
+    if (check != 0){
+        cerr << "smash error: gettype: invalid aruments" << endl;
+    }
+
+}
+
+SetcoreCommand::SetcoreCommand(const char *cmd_line): BuiltInCommand(cmd_line)
+{
+    int result = _parseCommandLine(cmd_line,this->args);
+    if (result != 3){
+       cerr<< "smash error: setcore: invalid arguments" << endl;
+    }
+    try {
+        this->jobId = stoi(this->args[1]);
+    }
+    catch(const std::invalid_argument& ia){
+        cerr << "smash error: gettype: invalid aruments" << endl;
+    }
+    try {
+        this->coreToSet = stoi(this->args[2]);
+    }
+    catch(const std::invalid_argument& ia){
+        cerr << "smash error: gettype: invalid aruments" << endl;
+    }
+}
+
+void SetcoreCommand::execute()
+{
+    JobsList::JobEntry* jobToSetCore = SmallShell::listOfJobs->getJobById(this->jobId);
+    if(jobToSetCore == nullptr){
+        cerr << "smash error: setcore: job-id <job-id> does not exist" << endl;
+    }
+
+    cpu_to_set cpuToSet;
+    CPU_ZERO(&cpuToSet);
+    CPU_SET(this->coreToSet, &cpuToSet);
+    int result = sched_setaffinity(this->jobId, sizeof(cpu_to_set), &cpuToSet);
+    if (result != 0){
+        cerr << "smash error: setcore: invalid core number" << endl;
+
+    }
+}
+
+
+
 GetFileTypeCommand::GetFileTypeCommand(const char *cmd_line): BuiltInCommand(cmd_line)
 {
     string cmd_s = _trim(cmd_line);
@@ -285,27 +353,32 @@ void GetFileTypeCommand::execute() {
 
 RedirectionCommand::RedirectionCommand(const char *cmd_line) : Command(cmd_line)
 {
-    string cmd_s = _trim(cmd_line);
-    if(cmd_s.find(">>")){
-        this->redirectSign = ">>";
-    }
-    if(cmd_s.find(">")){
-        this->redirectSign = ">";
-    }
-    size_t check = cmd_s.find_last_of(">");
-    string afterSign = cmd_s.substr(check+1);
-    string beforeSign;
-    if (this->redirectSign == ">"){
-        beforeSign = cmd_s.substr(0,check-1);
-    }
-    if (this->redirectSign == ">>"){
-        string beforeSign = cmd_s.substr(0,check-2);
-    }
-
-    this->destFile = _trim(afterSign);
-    string cmdBeforeSign = _trim(beforeSign);
-    this->command = new char[cmdBeforeSign.length()+1];
-    strcpy(this->command, cmdBeforeSign.c_str());
+//    string cmd_s = _trim(cmd_line);
+//    if(cmd_s.find(">>")){
+//        this->redirectSign = ">>";
+//    }
+//    if(cmd_s.find(">")){
+//        this->redirectSign = ">";
+//    }
+    char *args[21];
+    _parseCommandLine(cmd_line,args);
+//    size_t check = cmd_s.find_last_of(">");
+//    string afterSign = cmd_s.substr(check+1);
+//    string beforeSign;
+//    if (this->redirectSign == ">"){
+//        beforeSign = cmd_s.substr(0,check-1);
+//    }
+//    if (this->redirectSign == ">>"){
+//        string beforeSign = cmd_s.substr(0,check-2);
+//    }
+//
+//    this->destFile = _trim(afterSign);
+//    string cmdBeforeSign = _trim(beforeSign);
+//    this->command = new char[cmdBeforeSign.length()+1];
+//    strcpy(this->command, cmdBeforeSign.c_str());
+    this->command = args[0];
+    this->redirectSign = args[1];
+    this->destFile = args[2];
 }
 
 //void RedirectionCommand::execute() {
@@ -321,12 +394,14 @@ void RedirectionCommand::execute() {
         if (cmd_s.compare("showpid") == 0) {
             std::ofstream file(this->destFile, std::ios::trunc);
             file << "smash pid is " << getpid() << endl;
+            return;
         }
         if (cmd_s.compare("pwd") == 0) {
             std::ofstream file(this->destFile, std::ios::trunc);
             char workingDirectory[1024];
             getcwd(workingDirectory, sizeof(workingDirectory));
             file << workingDirectory << endl;
+            return;
 
         }
     }
@@ -335,12 +410,14 @@ void RedirectionCommand::execute() {
         if (cmd_s.compare("showpid") == 0) {
             std::ofstream file(this->destFile, std::ios::app);
             file << "smash pid is " << getpid() << endl;
+            return;
         }
         if (cmd_s.compare("pwd") == 0) {
             std::ofstream file(this->destFile, std::ios::app);
             char workingDirectory[1024];
             getcwd(workingDirectory, sizeof(workingDirectory));
             file << workingDirectory << endl;
+            return;
         }
     }
 
@@ -348,7 +425,7 @@ void RedirectionCommand::execute() {
 
         dup2(fileDescriptor, 1);
         char *args[21];
-        fillArgsArray(this->command, args);
+        _parseCommandLine(this->command,args);
         execvp(args[0], args);
     }
 }
@@ -356,17 +433,22 @@ void RedirectionCommand::execute() {
 
 PipeCommand::PipeCommand(const char *cmd_line): Command(cmd_line)
 {
-    string cmd_s = _trim(cmd_line);
-    size_t check = cmd_s.find_first_of("&");
-    if (check != string::npos){
-        this->sign = "|&";
-    }
-    else {
-        this->sign = "|";
-        check = cmd_s.find_first_of("|");
-    }
-    this->writeCommand = _trim(cmd_s.substr(0,check-1));
-    this->readCommand = _trim(cmd_s.substr(check+1));
+//    string cmd_s = _trim(cmd_line);
+//    size_t check = cmd_s.find_first_of("&");
+//    if (check != string::npos){
+//        this->sign = "|&";
+//    }
+//    else {
+//        this->sign = "|";
+//        check = cmd_s.find_first_of("|");
+//    }
+
+    char* args[21];
+    _parseCommandLine(cmd_line,args);
+    this->writeCommand = args[0];
+    this->sign = args[1];
+    this->readCommand = args[2];
+
 }
 
 //void PipeCommand::execute() {}
@@ -383,7 +465,7 @@ void PipeCommand::execute() {
         close(fd[0]);
         close(fd[1]);
         char* args[21];
-        fillArgsArray(this->writeCommand.c_str(),args);
+        _parseCommandLine(this->writeCommand.c_str(),args);
         execvp(args[0],args);
     }
     if(fork() == 0){
@@ -391,7 +473,7 @@ void PipeCommand::execute() {
         close(fd[0]);
         close(fd[1]);
         char *args2[21];
-        fillArgsArray(this->readCommand.c_str(),args2);
+        _parseCommandLine(this->readCommand.c_str(),args2);
         execvp(args2[0],args2);
     }
 }
@@ -524,11 +606,9 @@ void ExternalCommand::execute()
     if(this->isComplex() == false){
         pid_t pid = fork();
         if(pid == 0) {
-            const char* ScanCommandLine = this->cmd_line.c_str();
             char *args[21];
-            fillArgsArray(ScanCommandLine,args);
+            _parseCommandLine(this->cmd_line.c_str(),args);
             execvp(args[0], args);
-
         }
         if(pid > 0){
             if (isBgCmd == false){
@@ -570,17 +650,12 @@ JobsList::JobsList()
 
 ChangeDirCommand::ChangeDirCommand(const char *cmd_line): BuiltInCommand(cmd_line)
 {
-
-    string cmd_s = _trim(string(cmd_line));
-    size_t middle = cmd_s.find_first_of(WHITESPACE);
-    string afterCDLine = cmd_s.substr(middle+1);
-    afterCDLine = _trim(afterCDLine);
-    size_t isMoreThan2Argues = afterCDLine.find_first_of(" ");
-    if (isMoreThan2Argues != string::npos){
+    char* args[21];
+    int numOfArgs = _parseCommandLine(cmd_line,args);
+    if (numOfArgs != 2){
         cerr << "smash error: cd: too many arguments" <<endl;
     }
-    this->requestedDir = afterCDLine.substr(0, afterCDLine.find_first_of(WHITESPACE));
-
+    this->requestedDir = args[1];
 }
 void ChangeDirCommand::execute() {
 
@@ -658,11 +733,18 @@ void ShowPidCommand::execute() {
 
 changePromptCommand::changePromptCommand(const char *cmd_line): BuiltInCommand(cmd_line)
 {
-    string cmd_s = _trim(string(cmd_line));
-    size_t middle = cmd_s.find_first_of(WHITESPACE);
-    string afterCHLine = cmd_s.substr(middle+1);
-    afterCHLine = _ltrim(afterCHLine);
-    this->plastPrompt = afterCHLine.substr(0, afterCHLine.find_first_of(" \n"));
+    char *args[21];
+    int numOfArgs =  _parseCommandLine(cmd_line,args);
+//    string cmd_s = _trim(string(cmd_line));
+//    size_t middle = cmd_s.find_first_of(WHITESPACE);
+//    string afterCHLine = cmd_s.substr(middle+1);
+//    afterCHLine = _ltrim(afterCHLine);
+    if (numOfArgs == 1){
+        this->plastPrompt = args[0];
+    }
+    else{
+        this->plastPrompt = args[1];
+    }
 
 }
 void changePromptCommand::execute()
@@ -683,21 +765,31 @@ std::vector<JobsList::JobEntry> *JobsList::getVec() {
 
 ForegroundCommand::ForegroundCommand(const char *cmd_line, JobsList *jobs):BuiltInCommand(cmd_line)
 {
-    //check the syntax of the command:
-    string cmd_s = _trim(string(cmd_line));
-    this->cmd_line = cmd_s;
-    size_t index = cmd_s.find_first_of(WHITESPACE);
-    string afterFGLine = cmd_s.substr(index+1);
-    afterFGLine = _trim(afterFGLine);
-    size_t isMoreThan2Argues = afterFGLine.find_first_of(" ");
-    if (isMoreThan2Argues != string::npos){
+    char* args[21];
+    int numOfArgs = _parseCommandLine(cmd_line,args);
+//    //check the syntax of the command:
+//    string cmd_s = _trim(string(cmd_line));
+//    this->cmd_line = cmd_s;
+//    size_t index = cmd_s.find_first_of(WHITESPACE);
+//    string afterFGLine = cmd_s.substr(index+1);
+//    afterFGLine = _trim(afterFGLine);
+//    size_t isMoreThan2Argues = afterFGLine.find_first_of(" ");
+//    if (isMoreThan2Argues != string::npos){
+//        cerr << "smash error: fg: invalid arguments" <<endl;
+//    }
+    if (numOfArgs > 2){
         cerr << "smash error: fg: invalid arguments" <<endl;
     }
-
-    if(afterFGLine!=" "){ //there is a job-id
-        plastJobId =std::stoi(afterFGLine);
+    if (numOfArgs == 2){
+        try{
+            this->plastJobId =std::stoi(args[1]);
+        }
+        catch (const std::invalid_argument& ia)){
+            cerr << "smash error: fg: invalid arguments" <<endl;
+        }
         isPlastJobExist = true;
     }
+
     else{
         plastJobId = 0;
         isPlastJobExist = false;
@@ -776,17 +868,27 @@ JobsList::JobEntry *JobsList::getLastJob(int *lastJobId) {
 
 BackgroundCommand::BackgroundCommand(const char *cmd_line, JobsList *jobs) : BuiltInCommand(cmd_line){
     //check the syntax of the command:
-    string cmd_s = _trim(string(cmd_line));
-    this->cmd_line = cmd_s;
-    size_t index = cmd_s.find_first_of(WHITESPACE);
-    string afterBGLine = cmd_s.substr(index+1);
-    afterBGLine = _trim(afterBGLine);
-    size_t isMoreThan2Argues = afterBGLine.find_first_of(" ");
-    if (isMoreThan2Argues != string::npos){
-        cerr << "smash error: fg: invalid arguments" <<endl;
+    char* args[21];
+    int numOfArgs = _parseCommandLine(cmd_line,args);
+    if (numOfArgs > 2){
+        cerr << "smash error: bg: invalid arguments" <<endl;
     }
-    if(afterBGLine!=" "){ //there is a job-id
-        plastJobId =std::stoi(afterBGLine);
+//    string cmd_s = _trim(string(cmd_line));
+//    this->cmd_line = cmd_s;
+//    size_t index = cmd_s.find_first_of(WHITESPACE);
+//    string afterBGLine = cmd_s.substr(index+1);
+//    afterBGLine = _trim(afterBGLine);
+//    size_t isMoreThan2Argues = afterBGLine.find_first_of(" ");
+//    if (isMoreThan2Argues != string::npos){
+//        cerr << "smash error: bg: invalid arguments" <<endl;
+//    }
+    if(numOfArgs == 2){ //there is a job-id
+        try{
+            this->plastJobId =std::stoi(args[1]);
+        }
+        catch (const std::invalid_argument& ia){
+            cerr << "smash error: bg: invalid arguments" <<endl;
+        }
         isPlastJobExist = true;
     }
     else{
@@ -810,7 +912,7 @@ void BackgroundCommand::execute(){
         SmallShell::listOfJobs->getJobById(this->plastJobId)->isStopped = false;
         cout << this->cmd_line << " : " << this->plastJobId << endl;
         pid_t pidToSend = SmallShell::listOfJobs->getJobById(this->plastJobId)->job_pid;
-        //int result = kill(pidToSend,SIGCONT);
+        int result = kill(pidToSend,SIGCONT);
 
     }
 

@@ -198,6 +198,9 @@ class TimeoutCommand : public BuiltInCommand {
 };
 
 class ChmodCommand : public BuiltInCommand {
+    char* args[21];
+    int newMode;
+    std::string pathToFile;
   // TODO: Add your data members
  public:
   ChmodCommand(const char* cmd_line);
@@ -216,6 +219,9 @@ class GetFileTypeCommand : public BuiltInCommand {
 
 class SetcoreCommand : public BuiltInCommand {
   // TODO: Add your data members
+  char* args[21];
+  int jobId;
+  int coreToSet;
  public:
   SetcoreCommand(const char* cmd_line);
   virtual ~SetcoreCommand() {}
@@ -224,7 +230,8 @@ class SetcoreCommand : public BuiltInCommand {
 
 class KillCommand : public BuiltInCommand {
  // TODO: Add your data members
- std::string cmd_line;
+
+    std::string cmd_line;
     int sigNum;
     int job_id;
  public:
