@@ -376,9 +376,23 @@ RedirectionCommand::RedirectionCommand(const char *cmd_line) : Command(cmd_line)
 //    string cmdBeforeSign = _trim(beforeSign);
 //    this->command = new char[cmdBeforeSign.length()+1];
 //    strcpy(this->command, cmdBeforeSign.c_str());
-    this->command = args[0];
-    this->redirectSign = args[1];
-    this->destFile = args[2];
+    int index = 0;
+    string beforeSign;
+    string afterSign;
+    while(strcmp(args[index],">") != 0 && strcmp(args[index],">>")!=0){
+        beforeSign.append(args[index]);
+        beforeSign.append(" ");
+        index++;
+    }
+    this->redirectSign = args[index];
+    index++;
+    while(args[index]!= nullptr){
+        this->destFile.append(args[index]);
+        index++;
+    }
+
+    strcpy(this->command, beforeSign.c_str());
+
 }
 
 //void RedirectionCommand::execute() {
@@ -423,7 +437,7 @@ void RedirectionCommand::execute() {
 
     if (fork() == 0) {
 
-        dup2(fileDescriptor, 1);
+        dup2(fileDescriptor, STDOUT_FILENO);
         char *args[21];
         _parseCommandLine(this->command,args);
         execvp(args[0], args);
@@ -445,9 +459,20 @@ PipeCommand::PipeCommand(const char *cmd_line): Command(cmd_line)
 
     char* args[21];
     _parseCommandLine(cmd_line,args);
-    this->writeCommand = args[0];
-    this->sign = args[1];
-    this->readCommand = args[2];
+    int index = 0;
+    string beforeSign;
+    string afterSign;
+    while(strcmp(args[index],"|") != 0 && strcmp(args[index],"|&")!=0){
+        this->writeCommand.append(args[index]);
+        this->writeCommand.append(" ");
+        index++;
+    }
+    this->sign = args[index];
+    index++;
+    while(args[index]!= nullptr){
+        this->readCommand.append(args[index]);
+        index++;
+    }
 
 }
 
@@ -906,8 +931,10 @@ void BackgroundCommand::execute(){
     if (this->isPlastJobExist == true) {
         if (SmallShell::listOfJobs->getJobById(this->plastJobId) == nullptr) {
             cerr << "smash error: bg: job-id " << this->plastJobId << " does not exist" << endl;
+            return;
         } else if (SmallShell::listOfJobs->getJobById(this->plastJobId)->isStopped == false) {
             cerr << "smash error: bg: job-id " << this->plastJobId << " is already running in the background" << endl;
+            return;
         }
         SmallShell::listOfJobs->getJobById(this->plastJobId)->isStopped = false;
         cout << this->cmd_line << " : " << this->plastJobId << endl;
