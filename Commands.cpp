@@ -501,8 +501,8 @@ void PipeCommand::execute() {
         }
 
         if(fork()==0){
-            dup2(fd[0],STDIN_FILENO);
             close(fd[0]);
+            dup2(fd[0],STDIN_FILENO);
             close(fd[1]);
             char *args2[21];
             _parseCommandLine(this->readCommand.c_str(),args2);
@@ -513,6 +513,8 @@ void PipeCommand::execute() {
             close(fd[1]);
         }
         return;
+
+
     }
     if(fork() == 0){
         close(fd[0]);
