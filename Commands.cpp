@@ -574,33 +574,49 @@ void QuitCommand::execute() {
 
 KillCommand::KillCommand(const char *cmd_line, JobsList *jobs) : BuiltInCommand(cmd_line)
 {
-    this->cmd_line = _trim(cmd_line);
-    size_t check = this->cmd_line.find_first_of(WHITESPACE);
-    if (check == string::npos){
-        cerr << "smash error: kill: invalid arguments" << endl;
-    }
-    string lineAfterKill = this->cmd_line.substr(check);
-    check = lineAfterKill.find_first_of(WHITESPACE);
-    if (check == string::npos){
-        cerr << "smash error: kill: invalid arguments" << endl;
-    }
-    this->sigNum = std::stoi(lineAfterKill);
-    lineAfterKill = lineAfterKill.substr(check);
-    check = lineAfterKill.find_first_of(WHITESPACE);
-    if (check == string::npos){
-        cerr << "smash error: kill: invalid arguments" << endl;
-    }
-    this->job_id = std::stoi(lineAfterKill);
-    check = lineAfterKill.find_first_not_of(WHITESPACE);
-    if (check != string::npos){
-        cerr << "smash error: kill: invalid arguments" << endl;
-    }
+    int num_args = _parseCommandLine(cmd_line, args);
 
+    if(args[1][0] != '-'  || num_args>=4){ // The kill function needs to get up to 2 parameters and the kill command
+        cerr << "smash error: kill: invalid arguments" << endl;
+    }
 }
 
 void KillCommand::execute() {
 
+    sigNum = stoi(args[1]);
+    sigNum = sigNum*-1;
+    pid_t pid_to_send;
+    job_id_to_send= stoi(args[2]);
+    bool found_job = false;
+    vector<JobsList::JobEntry>* myVec =  SmallShell::listOfJobs->vectorOfJobs;
+    for (int i = 0;i < myVec->size();i++){
+        int job_index = (*myVec)[i].job_index;
+        if(job_index == job_id_to_send) {
+            //Save the pid to send:
+            pid_to_send = (*myVec)[i].job_pid;
+            found_job = true;
+            break;
+        }
+
+    }
+    // If the job was found, send the signal
+    if (found_job) {
+        int result = kill(pid_to_send, sigNum);
+        if (result == 0) {
+            std::cout << "signal number " << sigNum << " was sent to pid " << pid_to_send << std::endl;
+        }
+        else {
+            int j=0; //to change!
+            //kill failed: need to use perror! ////////////////////////////////////////////////////// to complete!
+        }
+    }
+    else {
+        std::cout << "smash error: kill: job-id " << job_id_to_send << "does not exist" << std::endl;
+    }
+
+
 }
+
 
 void SmallShell::executeCommand(const char *cmd_line) {
   // TODO: Add your implementation here
