@@ -404,8 +404,8 @@ void RedirectionCommand::execute() {
     string cmd_s = _trim(this->command);
 
     if(this->redirectSign == ">"){
-        int fileDescriptor = open(this->destFile.c_str(), std::ios::trunc);
         ofstream file(this->destFile, std::ios::trunc);
+        int fileDescriptor = open(this->destFile.c_str(), std::ios::trunc);
         if(cmd_s.compare("showpid") == 0){
             file << "smash pid is " << getpid() << endl;
             return;
@@ -427,8 +427,9 @@ void RedirectionCommand::execute() {
         }
     }
     if (this->redirectSign == ">>"){
-        fileDescriptor = open(this->destFile.c_str(), std::ios::app);
+
         ofstream file(this->destFile, std::ios::app);
+        int fileDescriptor = open(this->destFile.c_str(), std::ios::app);
         if(cmd_s.compare("showpid") == 0){
             file << "smash pid is " << getpid() << endl;
             return;
@@ -488,60 +489,64 @@ PipeCommand::PipeCommand(const char *cmd_line): Command(cmd_line)
 void PipeCommand::execute() {
     int fd[2];
     pipe(fd);
-    if (this->writeCommand.compare("showpid")==0||this->writeCommand.compare("pwd")==0){
-        close(fd[0]);
-        if(this->sign.compare("|") == 0){
-            dup2(fd[1],STDOUT_FILENO);
-        }
-        else if(this->sign.compare("|&") == 0) {
-            dup2(fd[1], STDERR_FILENO);
-        }
-        close(fd[1]);
-        if (this->writeCommand.compare("showpid")==0){
-            cout << "smash pid is " << getpid() << endl;
-        }
-        if (this->readCommand.compare("pwd")==0){
-            char workingDirectory[1024];
-            getcwd(workingDirectory, sizeof(workingDirectory));
-            cout << workingDirectory << endl;
-        }
-
-        if(fork()==0){
+    if (this->writeCommand.compare("showpid") == 0 || this->writeCommand.compare("pwd") == 0) {
+        pid_t pid = fork();
+        if (pid == 0) {
             close(fd[0]);
-            dup2(fd[0],STDIN_FILENO);
+            dup2(fd[0], STDIN_FILENO);
             close(fd[1]);
             char *args2[21];
-            _parseCommandLine(this->readCommand.c_str(),args2);
-            execvp(args2[0],args2);
+            _parseCommandLine(this->readCommand.c_str(), args2);
+            execvp(args2[0], args2);
         }
-        else{
+        if (pid > 0){
+            close(fd[0]);
+            if (this->sign.compare("|") == 0) {
+                dup2(fd[1], STDOUT_FILENO);
+            }
+            else if (this->sign.compare("|&") == 0) {
+                dup2(fd[1], STDERR_FILENO);
+            }
+            close(fd[1]);
+            if (this->writeCommand.compare("showpid") == 0) {
+                cout << "smash pid is " << getpid() << endl;
+            }
+            if (this->readCommand.compare("pwd") == 0) {
+                char workingDirectory[1024];
+                getcwd(workingDirectory, sizeof(workingDirectory));
+                cout << workingDirectory << endl;
+            }
             close(fd[0]);
             close(fd[1]);
         }
         return;
-
-
     }
-    if(fork() == 0){
-        close(fd[0]);
-        if(this->sign.compare("|") == 0){
-            dup2(fd[1],STDOUT_FILENO);
+    else {
+        if (fork() == 0) {
+            close(fd[0]);
+            if (this->sign.compare("|") == 0) {
+                dup2(fd[1], STDOUT_FILENO);
+            } else if (this->sign.compare("|&") == 0) {
+                dup2(fd[1], STDERR_FILENO);
+            }
+            close(fd[1]);
+            char *args[21];
+            _parseCommandLine(this->writeCommand.c_str(), args);
+            execvp(args[0], args);
         }
-        else if(this->sign.compare("|&") == 0) {
-            dup2(fd[1], STDERR_FILENO);
-        }
-        close(fd[1]);
-        char* args[21];
-        _parseCommandLine(this->writeCommand.c_str(),args);
-        execvp(args[0],args);
-    }
-    if(fork() == 0){
-        dup2(fd[0],STDIN_FILENO);
-        close(fd[0]);
-        close(fd[1]);
-        char *args2[21];
-        _parseCommandLine(this->readCommand.c_str(),args2);
-        execvp(args2[0],args2);
+
+         if (fork() == 0) {
+            dup2(fd[0], STDIN_FILENO);
+            close(fd[0]);
+            close(fd[1]);
+            char *args2[21];
+            _parseCommandLine(this->readCommand.c_str(), args2);
+            execvp(args2[0], args2);
+         }
+         else{
+             close(fd[0]);
+             close(fd[1]);
+         }
     }
 }
 
