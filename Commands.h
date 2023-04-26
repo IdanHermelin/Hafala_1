@@ -226,7 +226,8 @@ class KillCommand : public BuiltInCommand {
  // TODO: Add your data members
  std::string cmd_line;
     int sigNum;
-    int job_id;
+    int job_id_to_send;
+    char* args[20];
  public:
   KillCommand(const char* cmd_line, JobsList* jobs);
   virtual ~KillCommand() {}
