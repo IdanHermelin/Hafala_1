@@ -551,7 +551,7 @@ void KillCommand::execute() {
 
     sigNum = stoi(args[1]);
     sigNum = sigNum*-1;
-
+    pid_t pid_to_send;
     job_id_to_send= stoi(args[2]);
     bool found_job = false;
     vector<JobsList::JobEntry>* myVec =  SmallShell::listOfJobs->vectorOfJobs;
@@ -559,7 +559,7 @@ void KillCommand::execute() {
         int job_index = (*myVec)[i].job_index;
         if(job_index == job_id_to_send) {
             //Save the pid to send:
-            pid_t pid_to_send = (*myVec)[i].job_pid;
+            pid_to_send = (*myVec)[i].job_pid;
             found_job = true;
             break;
         }
@@ -572,6 +572,7 @@ void KillCommand::execute() {
             std::cout << "signal number " << sigNum << " was sent to pid " << pid_to_send << std::endl;
         }
         else {
+            int j=0; //to change!
             //kill failed: need to use perror! ////////////////////////////////////////////////////// to complete!
         }
     }
