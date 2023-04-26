@@ -576,36 +576,40 @@ void QuitCommand::execute() {
 
 KillCommand::KillCommand(const char *cmd_line, JobsList *jobs) : BuiltInCommand(cmd_line)
 {
-    int num_args = _parseCommandLine(cmd_line, args);
+    int num_args = _parseCommandLine(cmd_line, this->args);
 
-    if(args[1][0] != '-'  || num_args>=4){ // The kill function needs to get up to 2 parameters and the kill command
+    if(this->args[1][0] != '-'  || num_args>=4){ // The kill function needs to get up to 2 parameters and the kill command
         cerr << "smash error: kill: invalid arguments" << endl;
     }
 }
 
 void KillCommand::execute() {
 
-    sigNum = stoi(args[1]);
-    sigNum = sigNum*-1;
+    try{
+        this->sigNum = stoi(this->args[1]);
+    }
+    catch(const std::invalid_argument& ia){
+        cerr << "smash error: kill: invalid arguments" << endl;
+    }
+    this->sigNum = this->sigNum*-1;
     pid_t pid_to_send;
-    job_id_to_send= stoi(args[2]);
+    this->job_id_to_send= stoi(this->args[2]);
     bool found_job = false;
     vector<JobsList::JobEntry>* myVec =  SmallShell::listOfJobs->vectorOfJobs;
     for (int i = 0;i < myVec->size();i++){
         int job_index = (*myVec)[i].job_index;
-        if(job_index == job_id_to_send) {
+        if(job_index ==this->job_id_to_send) {
             //Save the pid to send:
             pid_to_send = (*myVec)[i].job_pid;
             found_job = true;
             break;
         }
-
     }
     // If the job was found, send the signal
     if (found_job) {
-        int result = kill(pid_to_send, sigNum);
+        int result = kill(pid_to_send,this->sigNum);
         if (result == 0) {
-            std::cout << "signal number " << sigNum << " was sent to pid " << pid_to_send << std::endl;
+            std::cout << "signal number " << this->sigNum << " was sent to pid " << pid_to_send << std::endl;
         }
         else {
             int j=0; //to change!
@@ -613,7 +617,7 @@ void KillCommand::execute() {
         }
     }
     else {
-        std::cout << "smash error: kill: job-id " << job_id_to_send << "does not exist" << std::endl;
+        std::cout << "smash error: kill: job-id " << this->job_id_to_send << "does not exist" << std::endl;
     }
 
 
