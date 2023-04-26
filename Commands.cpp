@@ -293,10 +293,10 @@ void SetcoreCommand::execute()
         cerr << "smash error: setcore: job-id <job-id> does not exist" << endl;
     }
 
-    cpu_to_set cpuToSet;
+    cpu_set_t cpuToSet;
     CPU_ZERO(&cpuToSet);
     CPU_SET(this->coreToSet, &cpuToSet);
-    int result = sched_setaffinity(this->jobId, sizeof(cpu_to_set), &cpuToSet);
+    int result = sched_setaffinity(this->jobId, sizeof(cpu_set_t), &cpuToSet);
     if (result != 0){
         cerr << "smash error: setcore: invalid core number" << endl;
 
@@ -390,7 +390,7 @@ RedirectionCommand::RedirectionCommand(const char *cmd_line) : Command(cmd_line)
         this->destFile.append(args[index]);
         index++;
     }
-
+    this->command = new char[beforeSign.length()+1];
     strcpy(this->command, beforeSign.c_str());
 
 }
@@ -400,6 +400,7 @@ RedirectionCommand::RedirectionCommand(const char *cmd_line) : Command(cmd_line)
 //}
 void RedirectionCommand::execute() {
 
+
     string cmd_s = this->command;
     string ScanCommandLine = this->command;
     int fileDescriptor;
@@ -407,6 +408,7 @@ void RedirectionCommand::execute() {
         fileDescriptor = open(this->destFile.c_str(), std::ios::trunc);
         if (cmd_s.compare("showpid") == 0) {
             std::ofstream file(this->destFile, std::ios::trunc);
+            if (!file.is_open())
             file << "smash pid is " << getpid() << endl;
             return;
         }
@@ -480,14 +482,46 @@ PipeCommand::PipeCommand(const char *cmd_line): Command(cmd_line)
 void PipeCommand::execute() {
     int fd[2];
     pipe(fd);
-    if(fork() == 0){
+    if (this->writeCommand.compare("showpid")||this->writeCommand.compare("pwd")){
+        close(fd[0]);
         if(this->sign.compare("|") == 0){
             dup2(fd[1],STDOUT_FILENO);
         }
-        if(this->sign.compare("|&") == 0){
-            dup2(fd[1],STDERR_FILENO);
+        else if(this->sign.compare("|&") == 0) {
+            dup2(fd[1], STDERR_FILENO);
         }
+        close(fd[1]);
+        if (this->writeCommand.compare("showpid")){
+            cout << "smash pid is " << getpid() << endl;
+        }
+        if (this->readCommand.compare("pwd")){
+            char workingDirectory[1024];
+            getcwd(workingDirectory, sizeof(workingDirectory));
+            cout << workingDirectory << endl;
+        }
+
+        if(fork()==0){
+            dup2(fd[0],STDIN_FILENO);
+            close(fd[0]);
+            close(fd[1]);
+            char *args2[21];
+            _parseCommandLine(this->readCommand.c_str(),args2);
+            execvp(args2[0],args2);
+        }
+        else{
+            close(fd[0]);
+            close(fd[1]);
+        }
+        return;
+    }
+    if(fork() == 0){
         close(fd[0]);
+        if(this->sign.compare("|") == 0){
+            dup2(fd[1],STDOUT_FILENO);
+        }
+        else if(this->sign.compare("|&") == 0) {
+            dup2(fd[1], STDERR_FILENO);
+        }
         close(fd[1]);
         char* args[21];
         _parseCommandLine(this->writeCommand.c_str(),args);
@@ -533,7 +567,7 @@ void QuitCommand::execute() {
             cout <<(*SmallShell::listOfJobs->vectorOfJobs)[i].job_pid << " : " << (*SmallShell::listOfJobs->vectorOfJobs)[i].cmd_line << endl;
         }
         for (int i = 0; i < SmallShell::listOfJobs->vectorOfJobs->size(); i++) {
-      //      int result = kill((*SmallShell::listOfJobs->vectorOfJobs)[i].job_pid, SIGKILL);
+            int result = kill((*SmallShell::listOfJobs->vectorOfJobs)[i].job_pid, SIGKILL);
         }
     }
 }
@@ -809,7 +843,7 @@ ForegroundCommand::ForegroundCommand(const char *cmd_line, JobsList *jobs):Built
         try{
             this->plastJobId =std::stoi(args[1]);
         }
-        catch (const std::invalid_argument& ia)){
+        catch (const std::invalid_argument& ia){
             cerr << "smash error: fg: invalid arguments" <<endl;
         }
         isPlastJobExist = true;
