@@ -401,48 +401,53 @@ RedirectionCommand::RedirectionCommand(const char *cmd_line) : Command(cmd_line)
 void RedirectionCommand::execute() {
 
 
-    string cmd_s = this->command;
-    string ScanCommandLine = this->command;
-    int fileDescriptor;
-    if (this->redirectSign == ">") {
-        fileDescriptor = open(this->destFile.c_str(), std::ios::trunc);
-        if (cmd_s.compare("showpid") == 0) {
-            std::ofstream file(this->destFile, std::ios::trunc);
-            if (!file.is_open())
+    string cmd_s = _trim(this->command);
+
+    if(this->redirectSign == ">"){
+        int fileDescriptor = open(this->destFile.c_str(), std::ios::trunc);
+        ofstream file(this->destFile, std::ios::trunc);
+        if(cmd_s.compare("showpid") == 0){
             file << "smash pid is " << getpid() << endl;
             return;
         }
         if (cmd_s.compare("pwd") == 0) {
-            std::ofstream file(this->destFile, std::ios::trunc);
+
             char workingDirectory[1024];
             getcwd(workingDirectory, sizeof(workingDirectory));
             file << workingDirectory << endl;
             return;
+        }
+        if (fork() == 0) {
 
+            dup2(fileDescriptor, STDOUT_FILENO);
+            char *args[21];
+            _parseCommandLine(this->command,args);
+            execvp(args[0], args);
+            return;
         }
     }
-    if (this->redirectSign == ">>") {
+    if (this->redirectSign == ">>"){
         fileDescriptor = open(this->destFile.c_str(), std::ios::app);
-        if (cmd_s.compare("showpid") == 0) {
-            std::ofstream file(this->destFile, std::ios::app);
+        ofstream file(this->destFile, std::ios::app);
+        if(cmd_s.compare("showpid") == 0){
             file << "smash pid is " << getpid() << endl;
             return;
         }
         if (cmd_s.compare("pwd") == 0) {
-            std::ofstream file(this->destFile, std::ios::app);
+
             char workingDirectory[1024];
             getcwd(workingDirectory, sizeof(workingDirectory));
             file << workingDirectory << endl;
             return;
         }
-    }
+        if (fork() == 0) {
 
-    if (fork() == 0) {
-
-        dup2(fileDescriptor, STDOUT_FILENO);
-        char *args[21];
-        _parseCommandLine(this->command,args);
-        execvp(args[0], args);
+            dup2(fileDescriptor, STDOUT_FILENO);
+            char *args[21];
+            _parseCommandLine(this->command,args);
+            execvp(args[0], args);
+            return;
+        }
     }
 }
 
@@ -469,6 +474,7 @@ PipeCommand::PipeCommand(const char *cmd_line): Command(cmd_line)
         this->writeCommand.append(" ");
         index++;
     }
+    this->writeCommand = _trim(this->writeCommand);
     this->sign = args[index];
     index++;
     while(args[index]!= nullptr){
@@ -482,7 +488,7 @@ PipeCommand::PipeCommand(const char *cmd_line): Command(cmd_line)
 void PipeCommand::execute() {
     int fd[2];
     pipe(fd);
-    if (this->writeCommand.compare("showpid")||this->writeCommand.compare("pwd")){
+    if (this->writeCommand.compare("showpid")==0||this->writeCommand.compare("pwd")==0){
         close(fd[0]);
         if(this->sign.compare("|") == 0){
             dup2(fd[1],STDOUT_FILENO);
@@ -491,10 +497,10 @@ void PipeCommand::execute() {
             dup2(fd[1], STDERR_FILENO);
         }
         close(fd[1]);
-        if (this->writeCommand.compare("showpid")){
+        if (this->writeCommand.compare("showpid")==0){
             cout << "smash pid is " << getpid() << endl;
         }
-        if (this->readCommand.compare("pwd")){
+        if (this->readCommand.compare("pwd")==0){
             char workingDirectory[1024];
             getcwd(workingDirectory, sizeof(workingDirectory));
             cout << workingDirectory << endl;
