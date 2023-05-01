@@ -423,7 +423,7 @@ void RedirectionCommand::execute() {
             char *args[21];
             _parseCommandLine(this->command,args);
             execvp(args[0], args);
-            return;
+            exit(0);
         }
     }
     if (this->redirectSign == ">>"){
@@ -447,7 +447,7 @@ void RedirectionCommand::execute() {
             char *args[21];
             _parseCommandLine(this->command,args);
             execvp(args[0], args);
-            return;
+            exit(0);
         }
     }
 }
@@ -498,6 +498,7 @@ void PipeCommand::execute() {
             char *args2[21];
             _parseCommandLine(this->readCommand.c_str(), args2);
             execvp(args2[0], args2);
+            exit(0);
         }
         if (pid > 0){
             close(fd[0]);
@@ -516,7 +517,7 @@ void PipeCommand::execute() {
                 getcwd(workingDirectory, sizeof(workingDirectory));
                 cout << workingDirectory << endl;
             }
-            close(fd[0]);
+            dup2(STDOUT_FILENO,fd[1]);
             close(fd[1]);
         }
         return;
@@ -533,6 +534,7 @@ void PipeCommand::execute() {
             char *args[21];
             _parseCommandLine(this->writeCommand.c_str(), args);
             execvp(args[0], args);
+            exit(0);
         }
 
          if (fork() == 0) {
@@ -542,6 +544,7 @@ void PipeCommand::execute() {
             char *args2[21];
             _parseCommandLine(this->readCommand.c_str(), args2);
             execvp(args2[0], args2);
+            exit(0);
          }
          else{
              close(fd[0]);
@@ -682,6 +685,7 @@ void ExternalCommand::execute()
             char *cmdLineToSend = const_cast<char*>(cmdLineToSendConst);
             char *args[] = {"/bin/bash","-c",cmdLineToSend, nullptr};
             execvp(args[0],args);
+            exit(0);
         }
         else{
             if (isBgCmd == false){
@@ -701,6 +705,7 @@ void ExternalCommand::execute()
             char *args[21];
             _parseCommandLine(this->cmd_line.c_str(),args);
             execvp(args[0], args);
+            exit(0);
         }
         if(pid > 0){
             if (isBgCmd == false){
