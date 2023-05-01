@@ -296,7 +296,7 @@ void SetcoreCommand::execute()
     cpu_set_t cpuToSet;
     CPU_ZERO(&cpuToSet);
     CPU_SET(this->coreToSet, &cpuToSet);
-    int result = sched_setaffinity(this->jobId, sizeof(cpu_set_t), &cpuToSet);
+    int result = sched_setaffinity(jobToSetCore->job_pid, sizeof(cpu_set_t), &cpuToSet);
     if (result != 0){
         cerr << "smash error: setcore: invalid core number" << endl;
 
