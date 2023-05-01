@@ -34,61 +34,61 @@ const std::string WHITESPACE = " \n\r\t\f\v";
 void fillArgsArray(const char* cmdLine,char* args[21]);
 string _ltrim(const std::string& s) // returns the string without any initial spaces
 {
-  size_t start = s.find_first_not_of(WHITESPACE);
-  return (start == std::string::npos) ? "" : s.substr(start);
+    size_t start = s.find_first_not_of(WHITESPACE);
+    return (start == std::string::npos) ? "" : s.substr(start);
 }
 
 string _rtrim(const std::string& s)
 {
-  size_t end = s.find_last_not_of(WHITESPACE);
-  return (end == std::string::npos) ? "" : s.substr(0, end + 1);
+    size_t end = s.find_last_not_of(WHITESPACE);
+    return (end == std::string::npos) ? "" : s.substr(0, end + 1);
 
 }
 
 string _trim(const std::string& s)
 {
-  return _rtrim(_ltrim(s));
+    return _rtrim(_ltrim(s));
 }
 
 int _parseCommandLine(const char* cmd_line, char** args) {
-  FUNC_ENTRY()
-  int i = 0;
-  std::istringstream iss(_trim(string(cmd_line)).c_str());
-  for(std::string s; iss >> s; ) {
-    args[i] = (char*)malloc(s.length()+1);
-    memset(args[i], 0, s.length()+1);
-    strcpy(args[i], s.c_str());
-    args[++i] = NULL;
-  }
-  return i;
+    FUNC_ENTRY()
+    int i = 0;
+    std::istringstream iss(_trim(string(cmd_line)).c_str());
+    for(std::string s; iss >> s; ) {
+        args[i] = (char*)malloc(s.length()+1);
+        memset(args[i], 0, s.length()+1);
+        strcpy(args[i], s.c_str());
+        args[++i] = NULL;
+    }
+    return i;
 
-  FUNC_EXIT()
+    FUNC_EXIT()
 }
 
 bool _isBackgroundComamnd(const char* cmd_line) {
-  const string str(cmd_line);
-  return str[str.find_last_not_of(WHITESPACE)] == '&';
+    const string str(cmd_line);
+    return str[str.find_last_not_of(WHITESPACE)] == '&';
 }
 
 void _removeBackgroundSign(char* cmd_line) {
-  const string str(cmd_line);
-  // find last character other than spaces
-  unsigned int idx = str.find_last_not_of(WHITESPACE);
-  // if all characters are spaces then return
-  if (idx == string::npos) {
-    return;
-  }
-  // if the command line does not end with & then return
-  if (cmd_line[idx] != '&'){
-    return;
-  }
-  // replace the & (background sign) with space and then remove all tailing spaces.
-  cmd_line[idx] = ' ';
-  // truncate the command line string up to the last non-space character
-  cmd_line[str.find_last_not_of(WHITESPACE, idx) + 1] = 0;
+    const string str(cmd_line);
+    // find last character other than spaces
+    unsigned int idx = str.find_last_not_of(WHITESPACE);
+    // if all characters are spaces then return
+    if (idx == string::npos) {
+        return;
+    }
+    // if the command line does not end with & then return
+    if (cmd_line[idx] != '&'){
+        return;
+    }
+    // replace the & (background sign) with space and then remove all tailing spaces.
+    cmd_line[idx] = ' ';
+    // truncate the command line string up to the last non-space character
+    cmd_line[str.find_last_not_of(WHITESPACE, idx) + 1] = 0;
 }
 
-// TODO: Add your implementation for classes in Commands.h 
+// TODO: Add your implementation for classes in Commands.h
 class JobsList;
 SmallShell::SmallShell() {
 
@@ -110,10 +110,10 @@ Command::~Command() noexcept {
 * Creates and returns a pointer to Command class which matches the given command line (cmd_line)
 */
 Command * SmallShell::CreateCommand(const char* cmd_line) {
-	// For example:
+    // For example:
 
-  string cmd_s = _trim(string(cmd_line));
-  string firstWord = cmd_s.substr(0, cmd_s.find_first_of(" \n"));
+    string cmd_s = _trim(string(cmd_line));
+    string firstWord = cmd_s.substr(0, cmd_s.find_first_of(" \n"));
 
     if (cmd_s.find(">") != string::npos||cmd_s.find(">>") != string::npos){
         return new RedirectionCommand(cmd_line);
@@ -123,89 +123,90 @@ Command * SmallShell::CreateCommand(const char* cmd_line) {
     }
 
     else if (firstWord.compare("pwd") == 0) {
-      if (_isBackgroundComamnd(cmd_line)){
-          char* toSend = const_cast<char*>(cmd_line);
-          _removeBackgroundSign(toSend);
-          return new GetCurrDirCommand(toSend);
-      }
-    return new GetCurrDirCommand(cmd_line);
-  }
-  else if (firstWord.compare("showpid") == 0) {
-      if (_isBackgroundComamnd(cmd_line)){
-          char* toSend = const_cast<char*>(cmd_line);
-          _removeBackgroundSign(toSend);
-          return new ShowPidCommand(toSend);
-      }
-    return new ShowPidCommand(cmd_line);
-  }
-  else if (firstWord.compare("cd") == 0) {
-      if (_isBackgroundComamnd(cmd_line)){
-          char* toSend = const_cast<char*>(cmd_line);
-          _removeBackgroundSign(toSend);
-          return new ChangeDirCommand(toSend);
-      }
-      return new ChangeDirCommand(cmd_line);
-  }
-  else if (firstWord.compare("chprompt") == 0){
-      if (_isBackgroundComamnd(cmd_line)){
-          char* toSend = const_cast<char*>(cmd_line);
-          _removeBackgroundSign(toSend);
-          return new changePromptCommand(toSend);
-      }
-      return new changePromptCommand(cmd_line);
-  }
-  else if (firstWord.compare("jobs") == 0){\
         if (_isBackgroundComamnd(cmd_line)){
-          char* toSend = const_cast<char*>(cmd_line);
-          _removeBackgroundSign(toSend);
-          return new JobsCommand(toSend,SmallShell::listOfJobs);
-      }
+            char* toSend = const_cast<char*>(cmd_line);
+            _removeBackgroundSign(toSend);
+            return new GetCurrDirCommand(toSend);
+        }
+        return new GetCurrDirCommand(cmd_line);
+    }
+    else if (firstWord.compare("showpid") == 0) {
+        if (_isBackgroundComamnd(cmd_line)){
+            char* toSend = const_cast<char*>(cmd_line);
+            _removeBackgroundSign(toSend);
+            return new ShowPidCommand(toSend);
+        }
+        return new ShowPidCommand(cmd_line);
+    }
+    else if (firstWord.compare("cd") == 0) {
+        if (_isBackgroundComamnd(cmd_line)){
+            char* toSend = const_cast<char*>(cmd_line);
+            _removeBackgroundSign(toSend);
+            return new ChangeDirCommand(toSend);
+        }
+        return new ChangeDirCommand(cmd_line);
+    }
+    else if (firstWord.compare("chprompt") == 0){
+        if (_isBackgroundComamnd(cmd_line)){
+            char* toSend = const_cast<char*>(cmd_line);
+            _removeBackgroundSign(toSend);
+            return new changePromptCommand(toSend);
+        }
+        return new changePromptCommand(cmd_line);
+    }
+    else if (firstWord.compare("jobs") == 0){\
+        if (_isBackgroundComamnd(cmd_line)){
+            char* toSend = const_cast<char*>(cmd_line);
+            _removeBackgroundSign(toSend);
+            return new JobsCommand(toSend,SmallShell::listOfJobs);
+        }
         return new JobsCommand(cmd_line,SmallShell::listOfJobs);
-  }
-  else if(firstWord.compare("fg")==0){
-      if (_isBackgroundComamnd(cmd_line)){
-          char* toSend = const_cast<char*>(cmd_line);
-          _removeBackgroundSign(toSend);
-          return new ForegroundCommand(toSend,SmallShell::listOfJobs);
-      }
-      return new ForegroundCommand(cmd_line,SmallShell::listOfJobs);
-  }
-  else if(firstWord.compare("bg") == 0){
-      if (_isBackgroundComamnd(cmd_line)){
-          char* toSend = const_cast<char*>(cmd_line);
-          _removeBackgroundSign(toSend);
-          return new BackgroundCommand(toSend,SmallShell::listOfJobs);
-      }
-      return new BackgroundCommand(cmd_line,SmallShell::listOfJobs);
-  }
-  else if (firstWord.compare("quit") == 0){
-      if (_isBackgroundComamnd(cmd_line)){
-          char* toSend = const_cast<char*>(cmd_line);
-          _removeBackgroundSign(toSend);
-          SmallShell::toQuit = true;
-          return new QuitCommand(toSend,SmallShell::listOfJobs);
-      }
-      SmallShell::toQuit = true;
-      return new QuitCommand(cmd_line,SmallShell::listOfJobs);
-  }
-  else if(firstWord.compare("getfileinfo") == 0){
-      return new GetFileTypeCommand(cmd_line);
-  }
-  else if(firstWord.compare("chmod") == 0){
-      return new ChmodCommand(cmd_line);
-  }
+    }
+    else if(firstWord.compare("fg")==0){
+        if (_isBackgroundComamnd(cmd_line)){
+            char* toSend = const_cast<char*>(cmd_line);
+            _removeBackgroundSign(toSend);
+            return new ForegroundCommand(toSend,SmallShell::listOfJobs);
+        }
+        return new ForegroundCommand(cmd_line,SmallShell::listOfJobs);
+    }
+    else if(firstWord.compare("bg") == 0){
+        if (_isBackgroundComamnd(cmd_line)){
+            char* toSend = const_cast<char*>(cmd_line);
+            _removeBackgroundSign(toSend);
+            return new BackgroundCommand(toSend,SmallShell::listOfJobs);
+        }
+        return new BackgroundCommand(cmd_line,SmallShell::listOfJobs);
+    }
+    else if (firstWord.compare("quit") == 0){
+        if (_isBackgroundComamnd(cmd_line)){
+            char* toSend = const_cast<char*>(cmd_line);
+            _removeBackgroundSign(toSend);
+            SmallShell::toQuit = true;
+            return new QuitCommand(toSend,SmallShell::listOfJobs);
+        }
+        SmallShell::toQuit = true;
+        return new QuitCommand(cmd_line,SmallShell::listOfJobs);
+    }
+    else if(firstWord.compare("getfileinfo") == 0){
+        return new GetFileTypeCommand(cmd_line);
+    }
+    else if(firstWord.compare("chmod") == 0){
+        return new ChmodCommand(cmd_line);
+    }
 
 
-  else {
-      return new ExternalCommand(cmd_line);
-  }
+    else {
+
+        return new ExternalCommand(cmd_line);
+    }
 
 
 //  else {
 //    return new ExternalCommand(cmd_line);
 //  }
 
-  return nullptr;
+    return nullptr;
 }
 void fillArgsArray(const char* cmdLine,char* args[21]){
     string ScanCommandLine = cmdLine;
@@ -270,7 +271,7 @@ SetcoreCommand::SetcoreCommand(const char *cmd_line): BuiltInCommand(cmd_line)
 {
     int result = _parseCommandLine(cmd_line,this->args);
     if (result != 3){
-       cerr<< "smash error: setcore: invalid arguments" << endl;
+        cerr<< "smash error: setcore: invalid arguments" << endl;
     }
     try {
         this->jobId = stoi(this->args[1]);
@@ -332,21 +333,21 @@ void GetFileTypeCommand::execute() {
 
         if (S_ISREG(status.st_mode)) {
             //temp.txt’s type is “regular file” and takes up 420 bytes
-            cout << this->pathToFile << " type is “regular file” and takes up " << size<< " bytes";
+            cout << this->pathToFile << " type is “regular file” and takes up " << size<< " bytes"<<endl;
         } else if (S_ISDIR(status.st_mode)) {
-            cout << this->pathToFile << " type is “directory” and takes up " << size<< " bytes";
+            cout << this->pathToFile << " type is “directory” and takes up " << size<< " bytes" << endl;
         } else if (S_ISCHR(status.st_mode)) {
-            cout << this->pathToFile << " type is “character device” and takes up " << size<< " bytes";
+            cout << this->pathToFile << " type is “character device” and takes up " << size<< " bytes" << endl;
         } else if (S_ISBLK(status.st_mode)) {
-            cout << this->pathToFile << " type is “block device” and takes up " << size<< " bytes";
+            cout << this->pathToFile << " type is “block device” and takes up " << size<< " bytes" << endl;
         } else if (S_ISFIFO(status.st_mode)) {
-            cout << this->pathToFile << " type is “FIFO” and takes up " << size << " bytes";
+            cout << this->pathToFile << " type is “FIFO” and takes up " << size << " bytes" << endl;
         }
-         else if (S_ISLNK(status.st_mode)) {
-             cout << this->pathToFile << " type is “symbolic link” and takes up " << size<< " bytes";
-         }
+        else if (S_ISLNK(status.st_mode)) {
+            cout << this->pathToFile << " type is “symbolic link” and takes up " << size<< " bytes" << endl;
+        }
         else if (S_ISSOCK(status.st_mode)) {
-             cout << this->pathToFile << " type is “socket” and takes up " << size<< " bytes";
+            cout << this->pathToFile << " type is “socket” and takes up " << size<< " bytes" << endl;
         }
     }
 }
@@ -402,6 +403,7 @@ void RedirectionCommand::execute() {
 
 
     string cmd_s = _trim(this->command);
+    ExternalCommand* cmd = new ExternalCommand(this->command);
 
     if(this->redirectSign == ">"){
         ofstream file(this->destFile, std::ios::trunc);
@@ -418,11 +420,8 @@ void RedirectionCommand::execute() {
             return;
         }
         if (fork() == 0) {
-
             dup2(fileDescriptor, STDOUT_FILENO);
-            char *args[21];
-            _parseCommandLine(this->command,args);
-            execvp(args[0], args);
+            cmd->execute();
             exit(0);
         }
     }
@@ -444,9 +443,7 @@ void RedirectionCommand::execute() {
         if (fork() == 0) {
 
             dup2(fileDescriptor, STDOUT_FILENO);
-            char *args[21];
-            _parseCommandLine(this->command,args);
-            execvp(args[0], args);
+            cmd->execute();
             exit(0);
         }
     }
@@ -480,6 +477,7 @@ PipeCommand::PipeCommand(const char *cmd_line): Command(cmd_line)
     index++;
     while(args[index]!= nullptr){
         this->readCommand.append(args[index]);
+        this->readCommand.append(" ");
         index++;
     }
 
@@ -489,18 +487,14 @@ PipeCommand::PipeCommand(const char *cmd_line): Command(cmd_line)
 void PipeCommand::execute() {
     int fd[2];
     pipe(fd);
+    ExternalCommand* readCmd = new ExternalCommand(this->readCommand.c_str());
+    ExternalCommand* writeCmd = new ExternalCommand(this->writeCommand.c_str());
+
     if (this->writeCommand.compare("showpid") == 0 || this->writeCommand.compare("pwd") == 0) {
-        pid_t pid = fork();
-        if (pid == 0) {
-            close(fd[0]);
-            dup2(fd[0], STDIN_FILENO);
-            close(fd[1]);
-            char *args2[21];
-            _parseCommandLine(this->readCommand.c_str(), args2);
-            execvp(args2[0], args2);
-            exit(0);
-        }
-        if (pid > 0){
+        int original_stdout_fd = dup(STDOUT_FILENO);
+
+        pid_t pid1 = fork();
+        if (pid1 == 0){
             close(fd[0]);
             if (this->sign.compare("|") == 0) {
                 dup2(fd[1], STDOUT_FILENO);
@@ -508,7 +502,7 @@ void PipeCommand::execute() {
             else if (this->sign.compare("|&") == 0) {
                 dup2(fd[1], STDERR_FILENO);
             }
-            close(fd[1]);
+
             if (this->writeCommand.compare("showpid") == 0) {
                 cout << "smash pid is " << getpid() << endl;
             }
@@ -517,13 +511,31 @@ void PipeCommand::execute() {
                 getcwd(workingDirectory, sizeof(workingDirectory));
                 cout << workingDirectory << endl;
             }
-            dup2(STDOUT_FILENO,fd[1]);
-            close(fd[1]);
+            exit(0);
+
         }
-        return;
+        else{
+            pid_t pid2 = fork();
+            if (pid2 == 0) {
+                close(fd[1]);
+                dup2(fd[0], STDIN_FILENO);
+                close(fd[0]);
+                readCmd->execute();
+                exit(0);
+            }
+
+            else{
+
+                dup2(original_stdout_fd, STDOUT_FILENO);
+                close(fd[1]);
+                close(original_stdout_fd);
+            }
+
+        }
     }
     else {
-        if (fork() == 0) {
+        pid_t pid1 = fork();
+        if (pid1 == 0) {
             close(fd[0]);
             if (this->sign.compare("|") == 0) {
                 dup2(fd[1], STDOUT_FILENO);
@@ -531,25 +543,26 @@ void PipeCommand::execute() {
                 dup2(fd[1], STDERR_FILENO);
             }
             close(fd[1]);
-            char *args[21];
-            _parseCommandLine(this->writeCommand.c_str(), args);
-            execvp(args[0], args);
+            writeCmd->execute();
             exit(0);
         }
+        else{
+            pid_t pid2 = fork();
 
-         if (fork() == 0) {
-            dup2(fd[0], STDIN_FILENO);
-            close(fd[0]);
-            close(fd[1]);
-            char *args2[21];
-            _parseCommandLine(this->readCommand.c_str(), args2);
-            execvp(args2[0], args2);
-            exit(0);
-         }
-         else{
-             close(fd[0]);
-             close(fd[1]);
-         }
+            if (pid2 == 0) {
+                dup2(fd[0], STDIN_FILENO);
+                close(fd[0]);
+                close(fd[1]);
+                readCmd->execute();
+                exit(0);
+
+
+            }
+            else{
+                close(fd[0]);
+                close(fd[1]);
+            }
+        }
     }
 }
 
@@ -576,6 +589,7 @@ QuitCommand::QuitCommand(const char *cmd_line, JobsList *jobs) : BuiltInCommand(
 
 
 void QuitCommand::execute() {
+
 
     if (this->isSpecified == true) {
         cout << "smash: sending SIGKILL signal to " << SmallShell::listOfJobs->vectorOfJobs->size() << " jobs:" << endl;
@@ -639,10 +653,16 @@ void KillCommand::execute() {
 
 
 void SmallShell::executeCommand(const char *cmd_line) {
-  // TODO: Add your implementation here
+    // TODO: Add your implementation here
 
-   Command* cmd = CreateCommand(cmd_line);
-   cmd->execute();
+    Command* cmd = CreateCommand(cmd_line);
+    cmd->execute();
+
+
+
+
+
+
 //  Please note that you must fork smash process for some commands (e.g., external commands....)
 }
 //ExternalCommand::ExternalCommand(const char *cmd_line): Command(cmd_line)
@@ -657,10 +677,10 @@ ExternalCommand::ExternalCommand(const char *cmdLine) : Command(cmdLine)
 }
 
 bool ExternalCommand::isComplex() {
-    if(this->cmd_line.find("*")||this->cmd_line.find("?")){
+    if(this->cmd_line.find("*")!=string::npos||this->cmd_line.find("?")!=string::npos){
         return true;
     }
-    return true;
+    return false;
 }
 
 //void ExternalCommand::execute() {
@@ -673,6 +693,9 @@ bool ExternalCommand::isComplex() {
 ////
 void ExternalCommand::execute()
 {
+
+
+
 
     std::time_t entry_time = time(nullptr);
     const char* cmdLineToSendConst = this->cmd_line.c_str();
@@ -699,15 +722,16 @@ void ExternalCommand::execute()
         }
     }
 
+
     if(this->isComplex() == false){
+
+
+
+
         pid_t pid = fork();
-        if(pid == 0) {
-            char *args[21];
-            _parseCommandLine(this->cmd_line.c_str(),args);
-            execvp(args[0], args);
-            exit(0);
-        }
         if(pid > 0){
+
+
             if (isBgCmd == false){
                 int status;
                 waitpid(pid, &status, 0);
@@ -718,6 +742,18 @@ void ExternalCommand::execute()
                 SmallShell::listOfJobs->JobsList::addJob(&jobToAdd);
             }
         }
+
+        if(pid == 0) {
+            char *args2[21];
+            char* cmdLine = new char[this->cmd_line.length()+1];
+            strcpy(cmdLine,this->cmd_line.c_str());
+            _removeBackgroundSign(cmdLine);
+            _parseCommandLine(cmdLine,args2);
+            execvp(args2[0], args2);
+            exit(0);
+
+        }
+
     }
 }
 
@@ -902,7 +938,7 @@ void ForegroundCommand::execute()
     pid_t plastPid = -1;
     vector<JobsList::JobEntry> myVector = *JobsList::vectorOfJobs;
     if (this->isPlastJobExist == false){
-            plastPid = myVector[myVector.size()-1].job_pid;
+        plastPid = myVector[myVector.size()-1].job_pid;
     }
     for (int i=0;i<myVector.size();i++){
         if(myVector[i].job_index == this->plastJobId) {
@@ -1050,7 +1086,6 @@ JobsList* SmallShell::listOfJobs;
 std::vector<JobsList::JobEntry>* JobsList::vectorOfJobs;
 int  JobsList::max_index=0;
 bool SmallShell::toQuit;
-
 
 
 
