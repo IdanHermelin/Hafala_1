@@ -360,6 +360,7 @@ RedirectionCommand::RedirectionCommand(const char *cmd_line) : Command(cmd_line)
 //    }
     char *args[21];
     _parseCommandLine(cmd_line,args);
+    this->fullCommand = cmd_line;
 //    size_t check = cmd_s.find_last_of(">");
 //    string afterSign = cmd_s.substr(check+1);
 //    string beforeSign;
@@ -392,7 +393,6 @@ RedirectionCommand::RedirectionCommand(const char *cmd_line) : Command(cmd_line)
     strcpy(this->command, beforeSign.c_str());
 
 }
-
 //void RedirectionCommand::execute() {
 //
 //}
@@ -403,8 +403,10 @@ void RedirectionCommand::execute() {
     ExternalCommand* cmd = new ExternalCommand(this->command);
 
     if(this->redirectSign == ">"){
+		
+		int original_stdout_fd = dup(STDOUT_FILENO);
         ofstream file(this->destFile, std::ios::trunc);
-        int fileDescriptor = open(this->destFile.c_str(), std::ios::trunc);
+        
         if(cmd_s.compare("showpid") == 0){
             file << "smash pid is " << getpid() << endl;
             return;
@@ -416,16 +418,20 @@ void RedirectionCommand::execute() {
             file << workingDirectory << endl;
             return;
         }
-        if (fork() == 0) {
-            dup2(fileDescriptor, STDOUT_FILENO);
-            cmd->execute();
-            exit(0);
-        }
+        
+        system(this->fullCommand);
+        
+	
+        
+        
+       
     }
     if (this->redirectSign == ">>"){
-
+		
+		int original_stdout_fd = dup(STDOUT_FILENO);
         ofstream file(this->destFile, std::ios::app);
-        int fileDescriptor = open(this->destFile.c_str(), std::ios::app);
+        
+        
         if(cmd_s.compare("showpid") == 0){
             file << "smash pid is " << getpid() << endl;
             return;
@@ -437,14 +443,14 @@ void RedirectionCommand::execute() {
             file << workingDirectory << endl;
             return;
         }
-        if (fork() == 0) {
+        
+        system(this->fullCommand);
+        
+        
+        
+		}
+	}
 
-            dup2(fileDescriptor, STDOUT_FILENO);
-            cmd->execute();
-            exit(0);
-        }
-    }
-}
 
 
 PipeCommand::PipeCommand(const char *cmd_line): Command(cmd_line)
@@ -488,7 +494,7 @@ void PipeCommand::execute() {
     ExternalCommand* writeCmd = new ExternalCommand(this->writeCommand.c_str());
 
     if (this->writeCommand.compare("showpid") == 0 || this->writeCommand.compare("pwd") == 0) {
-        int original_stdout_fd = dup(STDOUT_FILENO);
+        int original_stdin_fd = dup(STDIN_FILENO);
 
         pid_t pid1 = fork();
         if (pid1 == 0){
@@ -512,24 +518,19 @@ void PipeCommand::execute() {
 
         }
         else{
-            pid_t pid2 = fork();
-            if (pid2 == 0) {
+                int status;
+                waitpid(pid1,&status,0);
                 close(fd[1]);
                 dup2(fd[0], STDIN_FILENO);
-                close(fd[0]);
                 readCmd->execute();
-                exit(0);
-            }
 
-            else{
-
-                dup2(original_stdout_fd, STDOUT_FILENO);
-                close(fd[1]);
-                close(original_stdout_fd);
-            }
-
+                dup2(original_stdin_fd, STDIN_FILENO);
+                close(fd[0]);
+                close(original_stdin_fd);
         }
+
     }
+
     else {
         pid_t pid1 = fork();
         if (pid1 == 0) {
@@ -544,24 +545,24 @@ void PipeCommand::execute() {
             exit(0);
         }
         else{
-            pid_t pid2 = fork();
-
-            if (pid2 == 0) {
+				int original_stdin_fd = dup(STDIN_FILENO);
+				
+                int status;
+                waitpid(pid1,&status,0);
+                close(fd[1]);
                 dup2(fd[0], STDIN_FILENO);
-                close(fd[0]);
-                close(fd[1]);
                 readCmd->execute();
-                exit(0);
-
-
-            }
-            else{
+                dup2(original_stdin_fd,STDIN_FILENO);
                 close(fd[0]);
-                close(fd[1]);
+                close(original_stdin_fd);
+
             }
         }
     }
-}
+
+
+
+
 
 
 
@@ -1076,7 +1077,7 @@ JobsList* SmallShell::listOfJobs;
 std::vector<JobsList::JobEntry>* JobsList::vectorOfJobs;
 int  JobsList::max_index=0;
 bool SmallShell::toQuit;
-JobsList::JobEntry* ForegroundJob;/////?
+JobsList::JobEntry* SmallShell::ForegroundJob;/////?
 
 
 
