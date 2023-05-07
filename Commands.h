@@ -263,7 +263,7 @@ class SmallShell {
     static bool isLastDirectoryExist;
     static JobsList* listOfJobs;
     static bool toQuit;
-    static JobsList::JobEntry* ForegroundJob; /////////?
+    static JobsList::JobEntry* ForegroundJob;
 
 
 
