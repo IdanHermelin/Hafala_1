@@ -753,10 +753,19 @@ void ExternalCommand::execute()
     }
 }
 
-void JobsList::addJob(JobEntry *jobToAdd) {
-    this->max_index++;
-    jobToAdd->job_index = this->max_index;
-    this->vectorOfJobs->insert(this->vectorOfJobs->cend(),*jobToAdd);
+void JobsList::addJob(JobEntry *jobToAdd, bool isStopped) {
+    if(isStopped){
+        int num_before = 0, index=0;
+        while((*SmallShell::listOfJobs->vectorOfJobs)[index].job_index <jobToAdd->job_index){
+            num_before++;
+        }
+        this->vectorOfJobs->insert(this->vectorOfJobs->begin() + num_before,*jobToAdd);
+    }
+    else{
+        this->max_index++;
+        jobToAdd->job_index = this->max_index;
+        this->vectorOfJobs->insert(this->vectorOfJobs->cend(),*jobToAdd);
+    }
 }
 
 JobsList::JobEntry::JobEntry(time_t entry_time, std::string cmd_line, pid_t job_pid)
@@ -948,8 +957,7 @@ void ForegroundCommand::execute()
         if(result!=0){
             perror("smash error: kill failed");
         }
-
-        JobsList::JobEntry cur_job = JobsList::JobEntry(entry_time,cmd_line,plastPid); ///NEED TO CHECK IF CMD_LINE IS OK HERE!
+        JobsList::JobEntry cur_job = JobsList::JobEntry(entry_time,ToPrint,plastPid);
         SmallShell::ForegroundJob = &cur_job; ///to child
         int status;
         waitpid(plastPid, &status, WUNTRACED);

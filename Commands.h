@@ -136,7 +136,7 @@ class JobsList {
  public:
   JobsList();
   ~JobsList();
-  void addJob(JobEntry* jobToAdd);
+  void addJob(JobEntry* jobToAdd, bool isStopped);
   void printJobsList();
   void killAllJobs();
   void removeFinishedJobs();
