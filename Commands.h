@@ -56,6 +56,7 @@ class RedirectionCommand : public Command {
     std::string redirectSign;
     std::string destFile;
     char* command;
+    const char* fullCommand;
  public:
   explicit RedirectionCommand(const char* cmd_line);
   virtual ~RedirectionCommand() {}
