@@ -314,9 +314,6 @@ GetFileTypeCommand::GetFileTypeCommand(const char *cmd_line): BuiltInCommand(cmd
 
 }
 
-//void GetFileTypeCommand::execute() {
-//
-//}
 void GetFileTypeCommand::execute() {
     struct stat status;
     const char* filename = this->pathToFile.c_str();
@@ -598,6 +595,9 @@ void QuitCommand::execute() {
         }
         for (int i = 0; i < SmallShell::listOfJobs->vectorOfJobs->size(); i++) {
             int result = kill((*SmallShell::listOfJobs->vectorOfJobs)[i].job_pid, SIGKILL);
+            if(result!=0){
+                perror("smash error: kill failed");
+            }
         }
     }
 }
@@ -640,8 +640,7 @@ void KillCommand::execute() {
             std::cout << "signal number " << this->sigNum << " was sent to pid " << pid_to_send << std::endl;
         }
         else {
-            int j=0; //to change!
-            //kill failed: need to use perror! ////////////////////////////////////////////////////// to complete!
+            perror("smash error: kill failed");
         }
     }
     else {
@@ -693,15 +692,11 @@ bool ExternalCommand::isComplex() {
 ////
 void ExternalCommand::execute()
 {
-
-
-
-
     std::time_t entry_time = time(nullptr);
     const char* cmdLineToSendConst = this->cmd_line.c_str();
     bool isBgCmd = _isBackgroundComamnd(cmdLineToSendConst);
 
-    if (this->isComplex() == true){
+    if (this->isComplex()){
         pid_t pid = fork();
         if (pid == 0){
 
@@ -711,9 +706,12 @@ void ExternalCommand::execute()
             exit(0);
         }
         else{
-            if (isBgCmd == false){
+            if (!isBgCmd){ //foreground
                 int status;
+                JobsList::JobEntry cur_job = JobsList::JobEntry(entry_time,cmd_line,pid);
+                SmallShell::ForegroundJob = &cur_job; ///to child
                 waitpid(pid, &status, 0);
+                SmallShell::ForegroundJob = nullptr; ///to null
             }
             else{
                 JobsList::JobEntry jobToAdd(entry_time,cmd_line,pid);
@@ -723,18 +721,15 @@ void ExternalCommand::execute()
     }
 
 
-    if(this->isComplex() == false){
-
-
-
-
+    if(!this->isComplex()){
         pid_t pid = fork();
         if(pid > 0){
-
-
-            if (isBgCmd == false){
+            if (!isBgCmd){ //foreground
                 int status;
+                JobsList::JobEntry cur_job = JobsList::JobEntry(entry_time,cmd_line,pid);
+                SmallShell::ForegroundJob = &cur_job; ///to child
                 waitpid(pid, &status, 0);
+                SmallShell::ForegroundJob = nullptr; ///to null
             }
             else
             {
@@ -900,16 +895,6 @@ ForegroundCommand::ForegroundCommand(const char *cmd_line, JobsList *jobs):Built
 {
     char* args[21];
     int numOfArgs = _parseCommandLine(cmd_line,args);
-//    //check the syntax of the command:
-//    string cmd_s = _trim(string(cmd_line));
-//    this->cmd_line = cmd_s;
-//    size_t index = cmd_s.find_first_of(WHITESPACE);
-//    string afterFGLine = cmd_s.substr(index+1);
-//    afterFGLine = _trim(afterFGLine);
-//    size_t isMoreThan2Argues = afterFGLine.find_first_of(" ");
-//    if (isMoreThan2Argues != string::npos){
-//        cerr << "smash error: fg: invalid arguments" <<endl;
-//    }
     if (numOfArgs > 2){
         cerr << "smash error: fg: invalid arguments" <<endl;
     }
@@ -935,9 +920,10 @@ ForegroundCommand::ForegroundCommand(const char *cmd_line, JobsList *jobs):Built
 
 void ForegroundCommand::execute()
 {
+    std::time_t entry_time = time(nullptr);
     pid_t plastPid = -1;
     vector<JobsList::JobEntry> myVector = *JobsList::vectorOfJobs;
-    if (this->isPlastJobExist == false){
+    if (!this->isPlastJobExist){
         plastPid = myVector[myVector.size()-1].job_pid;
     }
     for (int i=0;i<myVector.size();i++){
@@ -953,23 +939,33 @@ void ForegroundCommand::execute()
         string ToPrint = SmallShell::listOfJobs->getJobById(this->plastJobId)->cmd_line;
         SmallShell::listOfJobs->removeJobById(this->plastJobId);
         cout << ToPrint  <<" : " << plastPid << endl;
-        kill(plastPid,SIGSTOP);
-        kill(plastPid,SIGCONT);
+        int result = kill(plastPid,SIGSTOP);
+        if(result!=0){
+            perror("smash error: kill failed");
+        }
+        result = kill(plastPid,SIGCONT);
+        if(result!=0){
+            perror("smash error: kill failed");
+        }
+
+        JobsList::JobEntry cur_job = JobsList::JobEntry(entry_time,cmd_line,plastPid); ///NEED TO CHECK IF CMD_LINE IS OK HERE!
+        SmallShell::ForegroundJob = &cur_job; ///to child
         int status;
         waitpid(plastPid, &status, 0);
+        SmallShell::ForegroundJob = nullptr; ///to null
     }
 }
 void JobsList::removeJobById(int jobId) {
 
-    for (int i=0;i<this->vectorOfJobs->size();++i){
-        if((*this->vectorOfJobs)[i].job_index == jobId){
-            this->vectorOfJobs->erase(this->vectorOfJobs->cbegin() + i);
-            if (this->max_index == jobId){
+    for (int i=0;i<JobsList::vectorOfJobs->size();++i){
+        if((*JobsList::vectorOfJobs)[i].job_index == jobId){
+            JobsList::vectorOfJobs->erase(JobsList::vectorOfJobs->cbegin() + i);
+            if (JobsList::max_index == jobId){
                 if(i == 0){
-                    this->max_index = 0;
+                    JobsList::max_index = 0;
                 }
                 else{
-                    this->max_index = (*vectorOfJobs)[i-1].job_index;
+                    JobsList::max_index = (*vectorOfJobs)[i-1].job_index;
                 }
             }
         }
@@ -1006,15 +1002,6 @@ BackgroundCommand::BackgroundCommand(const char *cmd_line, JobsList *jobs) : Bui
     if (numOfArgs > 2){
         cerr << "smash error: bg: invalid arguments" <<endl;
     }
-//    string cmd_s = _trim(string(cmd_line));
-//    this->cmd_line = cmd_s;
-//    size_t index = cmd_s.find_first_of(WHITESPACE);
-//    string afterBGLine = cmd_s.substr(index+1);
-//    afterBGLine = _trim(afterBGLine);
-//    size_t isMoreThan2Argues = afterBGLine.find_first_of(" ");
-//    if (isMoreThan2Argues != string::npos){
-//        cerr << "smash error: bg: invalid arguments" <<endl;
-//    }
     if(numOfArgs == 2){ //there is a job-id
         try{
             this->plastJobId =std::stoi(args[1]);
@@ -1028,7 +1015,7 @@ BackgroundCommand::BackgroundCommand(const char *cmd_line, JobsList *jobs) : Bui
         plastJobId = 0;
         isPlastJobExist = false;
     }
-///////////////need to complete this
+///////////////need to complete this //?
 }
 
 
@@ -1048,6 +1035,9 @@ void BackgroundCommand::execute(){
         cout << this->cmd_line << " : " << this->plastJobId << endl;
         pid_t pidToSend = SmallShell::listOfJobs->getJobById(this->plastJobId)->job_pid;
         int result = kill(pidToSend,SIGCONT);
+        if(result!=0){
+            perror("smash error: kill failed");
+        }
 
     }
 
@@ -1086,6 +1076,7 @@ JobsList* SmallShell::listOfJobs;
 std::vector<JobsList::JobEntry>* JobsList::vectorOfJobs;
 int  JobsList::max_index=0;
 bool SmallShell::toQuit;
+JobsList::JobEntry* ForegroundJob;/////?
 
 
 
