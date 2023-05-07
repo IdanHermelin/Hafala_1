@@ -11,8 +11,9 @@ void ctrlZHandler(int sig_num) {
     if(SmallShell::ForegroundJob != nullptr) {
         SmallShell::listOfJobs->addJob(SmallShell::ForegroundJob);
         kill(SmallShell::ForegroundJob->job_pid,SIGSTOP);
-        cout << "smash: process " << SmallShell::ForegroundJob->job_pid << "was stopped" <<endl;
+        cout << "smash: process " << SmallShell::ForegroundJob->job_pid << " was stopped" <<endl;
         SmallShell::ForegroundJob = nullptr; //kill the process
+        cout<< "finished ctrl-z function" <<endl;
     }
 }
 
@@ -21,7 +22,7 @@ void ctrlCHandler(int sig_num) {
     cout << "smash: got ctrl-C"<<endl;
     if(SmallShell::ForegroundJob != nullptr){
         kill(SmallShell::ForegroundJob->job_pid,SIGKILL);
-        cout << "smash: process " << SmallShell::ForegroundJob->job_pid << "was killed" <<endl;
+        cout << "smash: process " << SmallShell::ForegroundJob->job_pid << " was killed" <<endl;
         SmallShell::ForegroundJob = nullptr; //kill the process
     }
 }

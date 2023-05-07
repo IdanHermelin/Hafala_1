@@ -519,7 +519,7 @@ void PipeCommand::execute() {
         }
         else{
                 int status;
-                waitpid(pid1,&status,0);
+                waitpid(pid1,&status,WUNTRACED);
                 close(fd[1]);
                 dup2(fd[0], STDIN_FILENO);
                 readCmd->execute();
@@ -548,7 +548,7 @@ void PipeCommand::execute() {
 				int original_stdin_fd = dup(STDIN_FILENO);
 				
                 int status;
-                waitpid(pid1,&status,0);
+                waitpid(pid1,&status,WUNTRACED);
                 close(fd[1]);
                 dup2(fd[0], STDIN_FILENO);
                 readCmd->execute();
@@ -711,7 +711,7 @@ void ExternalCommand::execute()
                 int status;
                 JobsList::JobEntry cur_job = JobsList::JobEntry(entry_time,cmd_line,pid);
                 SmallShell::ForegroundJob = &cur_job; ///to child
-                waitpid(pid, &status, 0);
+                waitpid(pid, &status, WUNTRACED);
                 SmallShell::ForegroundJob = nullptr; ///to null
             }
             else{
@@ -729,7 +729,7 @@ void ExternalCommand::execute()
                 int status;
                 JobsList::JobEntry cur_job = JobsList::JobEntry(entry_time,cmd_line,pid);
                 SmallShell::ForegroundJob = &cur_job; ///to child
-                waitpid(pid, &status, 0);
+                waitpid(pid, &status, WUNTRACED);
                 SmallShell::ForegroundJob = nullptr; ///to null
             }
             else
@@ -952,7 +952,7 @@ void ForegroundCommand::execute()
         JobsList::JobEntry cur_job = JobsList::JobEntry(entry_time,cmd_line,plastPid); ///NEED TO CHECK IF CMD_LINE IS OK HERE!
         SmallShell::ForegroundJob = &cur_job; ///to child
         int status;
-        waitpid(plastPid, &status, 0);
+        waitpid(plastPid, &status, WUNTRACED);
         SmallShell::ForegroundJob = nullptr; ///to null
     }
 }
