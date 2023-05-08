@@ -194,6 +194,9 @@ Command * SmallShell::CreateCommand(const char* cmd_line) {
     else if(firstWord.compare("chmod") == 0){
         return new ChmodCommand(cmd_line);
     }
+    else if(firstWord.compare("timeout") == 0){
+        return new TimeoutCommand(cmd_line);
+    }
 
 
     else {
@@ -654,7 +657,7 @@ void KillCommand::execute() {
 
 void SmallShell::executeCommand(const char *cmd_line) {
     // TODO: Add your implementation here
-
+    SmallShell::listOfJobs->removeFinishedJobs();
     Command* cmd = CreateCommand(cmd_line);
     cmd->execute();
 
@@ -973,6 +976,16 @@ void ForegroundCommand::execute()
         SmallShell::ForegroundJob = nullptr; ///to null
     }
 }
+
+void JobsList::removeFinishedJobs() {
+    int status;
+    for(int i=0;i<JobsList::vectorOfJobs->size();++i) {
+        if(waitpid((*JobsList::vectorOfJobs)[i].job_pid, &status, WNOHANG)>0){
+            JobsList::vectorOfJobs->erase(JobsList::vectorOfJobs->cbegin() + i);
+        }
+    }
+}
+
 void JobsList::removeJobById(int jobId) {
 
     for (int i=0;i<JobsList::vectorOfJobs->size();++i){
@@ -1099,10 +1112,31 @@ bool SmallShell::isLastDirectoryExist;
 JobsList* SmallShell::listOfJobs;
 std::vector<JobsList::JobEntry>* JobsList::vectorOfJobs;
 int  JobsList::max_index=0;
+
+
+
 bool SmallShell::toQuit;
-JobsList::JobEntry* SmallShell::ForegroundJob;/////?
+JobsList::JobEntry* SmallShell::ForegroundJob;
+TimeoutCommand* SmallShell::TimeOutJob;
 
 
 
+TimeoutCommand::TimeoutCommand(const char *cmd_line) : BuiltInCommand(cmd_line) {
+    char* args[21];
+    int numOfArgs = _parseCommandLine(cmd_line,args);
+    SmallShell::TimeOutJob->duration = stoi(args[0]);
+    int index=0;
+    while(args[index]!=nullptr){
+        this->cmd_line.append(args[index]);
+        this->cmd_line.append(" ");
+        index++;
+    }
+}
 
+void TimeoutCommand::execute() {
+    SmallShell::TimeOutJob->cmd_line = cmd_line;
+    Command* command = SmallShell::createCommand(cmd_line.c_str());
 
+    alarm(duration);
+
+}

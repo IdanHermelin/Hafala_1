@@ -194,6 +194,8 @@ class TimeoutCommand : public BuiltInCommand {
 /* Bonus */
 // TODO: Add your data members
 public:
+    int duration;
+    std::string cmd_line;
     explicit TimeoutCommand(const char* cmd_line);
     virtual ~TimeoutCommand() {}
     void execute() override;
@@ -265,6 +267,7 @@ public:
     static JobsList* listOfJobs;
     static bool toQuit;
     static JobsList::JobEntry* ForegroundJob;
+    static TimeoutCommand* TimeOutJob;
 
 
 
