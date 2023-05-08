@@ -403,10 +403,10 @@ void RedirectionCommand::execute() {
     ExternalCommand* cmd = new ExternalCommand(this->command);
 
     if(this->redirectSign == ">"){
-		
-		int original_stdout_fd = dup(STDOUT_FILENO);
+
+        int original_stdout_fd = dup(STDOUT_FILENO);
         ofstream file(this->destFile, std::ios::trunc);
-        
+
         if(cmd_s.compare("showpid") == 0){
             file << "smash pid is " << getpid() << endl;
             return;
@@ -418,20 +418,20 @@ void RedirectionCommand::execute() {
             file << workingDirectory << endl;
             return;
         }
-        
+
         system(this->fullCommand);
-        
-	
-        
-        
-       
+
+
+
+
+
     }
     if (this->redirectSign == ">>"){
-		
-		int original_stdout_fd = dup(STDOUT_FILENO);
+
+        int original_stdout_fd = dup(STDOUT_FILENO);
         ofstream file(this->destFile, std::ios::app);
-        
-        
+
+
         if(cmd_s.compare("showpid") == 0){
             file << "smash pid is " << getpid() << endl;
             return;
@@ -443,13 +443,13 @@ void RedirectionCommand::execute() {
             file << workingDirectory << endl;
             return;
         }
-        
+
         system(this->fullCommand);
-        
-        
-        
-		}
-	}
+
+
+
+    }
+}
 
 
 
@@ -518,15 +518,15 @@ void PipeCommand::execute() {
 
         }
         else{
-                int status;
-                waitpid(pid1,&status,WUNTRACED);
-                close(fd[1]);
-                dup2(fd[0], STDIN_FILENO);
-                readCmd->execute();
+            int status;
+            waitpid(pid1,&status,WUNTRACED);
+            close(fd[1]);
+            dup2(fd[0], STDIN_FILENO);
+            readCmd->execute();
 
-                dup2(original_stdin_fd, STDIN_FILENO);
-                close(fd[0]);
-                close(original_stdin_fd);
+            dup2(original_stdin_fd, STDIN_FILENO);
+            close(fd[0]);
+            close(original_stdin_fd);
         }
 
     }
@@ -545,20 +545,20 @@ void PipeCommand::execute() {
             exit(0);
         }
         else{
-				int original_stdin_fd = dup(STDIN_FILENO);
-				
-                int status;
-                waitpid(pid1,&status,WUNTRACED);
-                close(fd[1]);
-                dup2(fd[0], STDIN_FILENO);
-                readCmd->execute();
-                dup2(original_stdin_fd,STDIN_FILENO);
-                close(fd[0]);
-                close(original_stdin_fd);
+            int original_stdin_fd = dup(STDIN_FILENO);
 
-            }
+            int status;
+            waitpid(pid1,&status,WUNTRACED);
+            close(fd[1]);
+            dup2(fd[0], STDIN_FILENO);
+            readCmd->execute();
+            dup2(original_stdin_fd,STDIN_FILENO);
+            close(fd[0]);
+            close(original_stdin_fd);
+
         }
     }
+}
 
 
 
@@ -716,7 +716,7 @@ void ExternalCommand::execute()
             }
             else{
                 JobsList::JobEntry jobToAdd(entry_time,cmd_line,pid);
-                SmallShell::listOfJobs->addJob(&jobToAdd);
+                SmallShell::listOfJobs->addJob(&jobToAdd,false);
             }
         }
     }
@@ -735,7 +735,7 @@ void ExternalCommand::execute()
             else
             {
                 JobsList::JobEntry jobToAdd(entry_time,cmd_line,pid);
-                SmallShell::listOfJobs->JobsList::addJob(&jobToAdd);
+                SmallShell::listOfJobs->JobsList::addJob(&jobToAdd,false);
             }
         }
 
@@ -758,10 +758,12 @@ void JobsList::addJob(JobEntry *jobToAdd, bool isStopped) {
         int num_before = 0, index=0;
         while((*SmallShell::listOfJobs->vectorOfJobs)[index].job_index <jobToAdd->job_index){
             num_before++;
+            index++;
         }
-        this->vectorOfJobs->insert(this->vectorOfJobs->begin() + num_before,*jobToAdd);
+        SmallShell::listOfJobs->vectorOfJobs->insert(this->vectorOfJobs->begin() + num_before, *jobToAdd);
     }
     else{
+        jobToAdd->isInJobsList = true;
         this->max_index++;
         jobToAdd->job_index = this->max_index;
         this->vectorOfJobs->insert(this->vectorOfJobs->cend(),*jobToAdd);
@@ -770,6 +772,7 @@ void JobsList::addJob(JobEntry *jobToAdd, bool isStopped) {
 
 JobsList::JobEntry::JobEntry(time_t entry_time, std::string cmd_line, pid_t job_pid)
 {
+    this->isInJobsList = false;
     this->isStopped = false;
     this->cmd_line = cmd_line;
     this->entryTime = entry_time;
@@ -842,7 +845,11 @@ void JobsCommand::execute() {
         pid_t pid = (*myVec)[i].job_pid;
         cout << "[" << job_index <<"] " << cmdLine;
         cout << " : " << pid << " ";
-        cout << difftime(time(nullptr),(*myVec)[i].entryTime) << " secs" << endl;
+        cout << difftime(time(nullptr),(*myVec)[i].entryTime) << " secs";
+        if ((*myVec)[i].isStopped == true){
+            cout << " (stopped)";
+        }
+        cout <<  " " << endl;
     }
 }
 
@@ -958,6 +965,8 @@ void ForegroundCommand::execute()
             perror("smash error: kill failed");
         }
         JobsList::JobEntry cur_job = JobsList::JobEntry(entry_time,ToPrint,plastPid);
+        cur_job.isInJobsList = true;
+        cur_job.job_index = plastJobId;
         SmallShell::ForegroundJob = &cur_job; ///to child
         int status;
         waitpid(plastPid, &status, WUNTRACED);
@@ -1031,17 +1040,23 @@ BackgroundCommand::BackgroundCommand(const char *cmd_line, JobsList *jobs) : Bui
 
 void BackgroundCommand::execute(){
     int lastStoppedJobId = -1;
-
+    int index = 0;
     if (this->isPlastJobExist == true) {
         if (SmallShell::listOfJobs->getJobById(this->plastJobId) == nullptr) {
             cerr << "smash error: bg: job-id " << this->plastJobId << " does not exist" << endl;
             return;
-        } else if (SmallShell::listOfJobs->getJobById(this->plastJobId)->isStopped == false) {
-            cerr << "smash error: bg: job-id " << this->plastJobId << " is already running in the background" << endl;
-            return;
+        } else {
+            while (((*SmallShell::listOfJobs->vectorOfJobs)[index].job_index < this->plastJobId)){
+                index++;
+            }
+            bool isStp = (*SmallShell::listOfJobs->vectorOfJobs)[index].isStopped;
+            if (isStp == false) {
+                cerr << "smash error: bg: job-id " << this->plastJobId << " is already running in the background" << endl;
+                return;
+            }
         }
-        SmallShell::listOfJobs->getJobById(this->plastJobId)->isStopped = false;
-        cout << this->cmd_line << " : " << this->plastJobId << endl;
+        (*SmallShell::listOfJobs->vectorOfJobs)[index].isStopped = false;
+        cout << (*SmallShell::listOfJobs->vectorOfJobs)[index].cmd_line << " : " << this->plastJobId << endl;
         pid_t pidToSend = SmallShell::listOfJobs->getJobById(this->plastJobId)->job_pid;
         int result = kill(pidToSend,SIGCONT);
         if(result!=0){
