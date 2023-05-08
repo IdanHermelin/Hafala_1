@@ -978,12 +978,20 @@ void ForegroundCommand::execute()
 }
 
 void JobsList::removeFinishedJobs() {
+    std::vector<JobsList::JobEntry>*copy = JobsList::vectorOfJobs;
     int status;
-    for(int i=0;i<JobsList::vectorOfJobs->size();++i) {
-        if(waitpid((*JobsList::vectorOfJobs)[i].job_pid, &status, WNOHANG)>0){
-            JobsList::vectorOfJobs->erase(JobsList::vectorOfJobs->cbegin() + i);
+    for(int i=0;i<copy->size();++i) {
+        if(waitpid((*copy)[i].job_pid, &status, WNOHANG)>0){
+            SmallShell::listOfJobs->removeJobById((*copy)[i].job_index);
         }
     }
+    int max=0;
+    for(int i=0;i<JobsList::vectorOfJobs->size();++i){
+        if(JobsList::vectorOfJobs[i].data()->job_index > max){
+            max=JobsList::vectorOfJobs[i].data()->job_index;
+        }
+    }
+    JobsList::max_index = max;
 }
 
 void JobsList::removeJobById(int jobId) {
