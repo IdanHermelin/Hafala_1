@@ -764,6 +764,9 @@ void JobsList::addJob(JobEntry *jobToAdd, bool isStopped) {
             index++;
         }
         SmallShell::listOfJobs->vectorOfJobs->insert(this->vectorOfJobs->begin() + num_before, *jobToAdd);
+		if (jobToAdd->job_index == this->max_index+1){
+            this->max_index++;
+        }
     }
     else{
         jobToAdd->isInJobsList = true;
@@ -942,13 +945,13 @@ void ForegroundCommand::execute()
 {
     std::time_t entry_time = time(nullptr);
     pid_t plastPid = -1;
-    vector<JobsList::JobEntry> myVector = *JobsList::vectorOfJobs;
-    if (!this->isPlastJobExist){
-        plastPid = myVector[myVector.size()-1].job_pid;
+    vector<JobsList::JobEntry>* myVector = SmallShell::listOfJobs->vectorOfJobs;
+    if (!this->isPlastJobExist && myVector->size()>0){
+        this->plastJobId = SmallShell::listOfJobs->max_index;
     }
-    for (int i=0;i<myVector.size();i++){
-        if(myVector[i].job_index == this->plastJobId) {
-            plastPid = myVector[i].job_pid;
+    for (int i=0;i<myVector->size();i++){
+        if((*myVector)[i].job_index == this->plastJobId) {
+            plastPid = (*myVector)[i].job_pid;
         }
     }
     if (plastPid == -1){
@@ -1090,10 +1093,21 @@ void BackgroundCommand::execute(){
         for (int i = 0; i < SmallShell::listOfJobs->vectorOfJobs->size(); i++) {
             if ((*SmallShell::listOfJobs->vectorOfJobs)[i].isStopped == true) {
                 lastStoppedJobId = (*SmallShell::listOfJobs->vectorOfJobs)[i].job_index;
+                index = i;
             }
         }
         if (lastStoppedJobId == -1) {
             cerr << "smash error: bg: there is no stopped jobs to resume" << endl;
+        }
+        else{
+            (*SmallShell::listOfJobs->vectorOfJobs)[index].isStopped = false;
+            cout << (*SmallShell::listOfJobs->vectorOfJobs)[index].cmd_line << " : " << this->plastJobId << endl;
+            pid_t pidToSend = SmallShell::listOfJobs->getJobById(lastStoppedJobId)->job_pid;
+            int result = kill(pidToSend,SIGCONT);
+            if(result!=0){
+                perror("smash error: kill failed");
+            }
+            
         }
     }
 }
@@ -1142,9 +1156,10 @@ TimeoutCommand::TimeoutCommand(const char *cmd_line) : BuiltInCommand(cmd_line) 
 }
 
 void TimeoutCommand::execute() {
-    SmallShell::TimeOutJob->cmd_line = cmd_line;
-    Command* command = SmallShell::createCommand(cmd_line.c_str());
+    //SmallShell::TimeOutJob->cmd_line = cmd_line;
+   // Command* command = SmallShell::createCommand(cmd_line.c_str());
 
-    alarm(duration);
+ //   alarm(duration);
 
 }
+
