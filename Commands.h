@@ -28,6 +28,7 @@ class ExternalCommand : public Command {
 
 
     std::string cmd_line;
+    std::string originalCmdLine;
 public:
     ExternalCommand(const char* cmd_line);
     virtual ~ExternalCommand() {}
@@ -56,7 +57,7 @@ class RedirectionCommand : public Command {
     std::string redirectSign;
     std::string destFile;
     char* command;
-    const char* fullCommand;
+    char* fullCommand;
 public:
     explicit RedirectionCommand(const char* cmd_line);
     virtual ~RedirectionCommand() {}
@@ -67,6 +68,7 @@ public:
 
 class ChangeDirCommand : public BuiltInCommand {
 // TODO: Add your data members public:
+    bool isValid;
 public:
     ChangeDirCommand(const char *cmd_line);
     virtual ~ChangeDirCommand() {}
@@ -169,6 +171,7 @@ class ForegroundCommand : public BuiltInCommand {
     pid_t plastJobId;
     bool isPlastJobExist;
     std::string cmd_line;
+    bool isValid;
 
 
 public:
@@ -183,6 +186,7 @@ class BackgroundCommand : public BuiltInCommand {
     pid_t plastJobId;
     bool isPlastJobExist;
     std::string cmd_line;
+    bool isValid;
 
 public:
     BackgroundCommand(const char* cmd_line, JobsList* jobs);
@@ -194,6 +198,8 @@ class TimeoutCommand : public BuiltInCommand {
 /* Bonus */
 // TODO: Add your data members
 public:
+    int duration;
+    std::string cmd_line;
     explicit TimeoutCommand(const char* cmd_line);
     virtual ~TimeoutCommand() {}
     void execute() override;
@@ -203,6 +209,8 @@ class ChmodCommand : public BuiltInCommand {
     char* args[21];
     int newMode;
     std::string pathToFile;
+    std::string cmd_line;
+
     // TODO: Add your data members
 public:
     ChmodCommand(const char* cmd_line);
@@ -237,10 +245,15 @@ class KillCommand : public BuiltInCommand {
     int sigNum;
     int job_id_to_send;
     char* args[20];
+    bool isValid;
+    pid_t pidToSend;
+    const char* fullCommand;
 public:
     KillCommand(const char* cmd_line, JobsList* jobs);
     virtual ~KillCommand() {}
     void execute() override;
+    bool isArgsCorrect();
+    bool getIsValid();
 };
 
 class SmallShell {
@@ -265,6 +278,7 @@ public:
     static JobsList* listOfJobs;
     static bool toQuit;
     static JobsList::JobEntry* ForegroundJob;
+    static TimeoutCommand* TimeOutJob;
 
 
 

@@ -10,7 +10,7 @@ void ctrlZHandler(int sig_num) {
     cout << "smash: got ctrl-Z" <<endl;
     if(SmallShell::ForegroundJob != nullptr) {
         bool isJob;
-        if (_isBackgroundComamnd(SmallShell::ForegroundJob->cmd_line.c_str())==true || SmallShell::ForegroundJob->isInJobsList){
+        if (_isBackgroundComamnd(SmallShell::ForegroundJob->cmd_line.c_str()) || SmallShell::ForegroundJob->isInJobsList){
             isJob = true;
         }
 
@@ -34,5 +34,7 @@ void ctrlCHandler(int sig_num) {
 
 void alarmHandler(int sig_num) {
     // TODO: Add your implementation
+    cout << "smash: got an alarm" <<endl;
+
 }
 
