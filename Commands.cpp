@@ -267,14 +267,14 @@ ChmodCommand::ChmodCommand(const char *cmd_line): BuiltInCommand(cmd_line)
 
 void ChmodCommand::execute() {
     if (_parseCommandLine(this->cmd_line.c_str(),this->args)!=3){
-        cerr << "smash error: gettype: invalid aruments" << endl;
+        cerr << "smash error: chmod: invalid aruments" << endl;
         return;
     }
     try {
         this->newMode = stoi(this->args[1]);
     }
     catch(const std::invalid_argument& e){
-        cerr << "smash error: gettype: invalid aruments" << endl;
+        cerr << "smash error: chmod: invalid aruments" << endl;
         return;
     }
 
@@ -282,7 +282,7 @@ void ChmodCommand::execute() {
 
     int check = chmod(this->pathToFile.c_str(),this->newMode);
     if (check != 0){
-        cerr << "smash error: gettype: invalid aruments" << endl;
+        cerr << "smash error: chmod: invalid aruments" << endl;
     }
 
 }
@@ -297,13 +297,13 @@ SetcoreCommand::SetcoreCommand(const char *cmd_line): BuiltInCommand(cmd_line)
         this->jobId = stoi(this->args[1]);
     }
     catch(const std::invalid_argument& e){
-        cerr << "smash error: gettype: invalid aruments" << endl;
+        cerr << "smash error: setcore: invalid aruments" << endl;
     }
     try {
         this->coreToSet = stoi(this->args[2]);
     }
     catch(const std::invalid_argument& e){
-        cerr << "smash error: gettype: invalid aruments" << endl;
+        cerr << "smash error: setcore: invalid aruments" << endl;
     }
 }
 
@@ -371,29 +371,6 @@ void GetFileTypeCommand::execute() {
 
 RedirectionCommand::RedirectionCommand(const char *cmd_line) : Command(cmd_line)
 {
-//    string cmd_s = _trim(cmd_line);
-//    if(cmd_s.find(">>")){
-//        this->redirectSign = ">>";
-//    }
-//    if(cmd_s.find(">")){
-//        this->redirectSign = ">";
-//    }
-
-
-//    size_t check = cmd_s.find_last_of(">");
-//    string afterSign = cmd_s.substr(check+1);
-//    string beforeSign;
-//    if (this->redirectSign == ">"){
-//        beforeSign = cmd_s.substr(0,check-1);
-//    }
-//    if (this->redirectSign == ">>"){
-//        string beforeSign = cmd_s.substr(0,check-2);
-//    }
-//
-//    this->destFile = _trim(afterSign);
-//    string cmdBeforeSign = _trim(beforeSign);
-//    this->command = new char[cmdBeforeSign.length()+1];
-//    strcpy(this->command, cmdBeforeSign.c_str());
     char *args[21];
     _parseCommandLine(cmd_line,args);
     string cmd_s = _trim(cmd_line);
@@ -409,8 +386,6 @@ RedirectionCommand::RedirectionCommand(const char *cmd_line) : Command(cmd_line)
         cmd_s.insert(index,1,' ');
         cmd_s.insert(index+2,1,' ');
     }
-
-
 
     _parseCommandLine(cmd_s.c_str(),args);
     this->fullCommand = new char[strlen(cmd_line)+1];
@@ -436,9 +411,7 @@ RedirectionCommand::RedirectionCommand(const char *cmd_line) : Command(cmd_line)
 
 
 }
-//void RedirectionCommand::execute() {
-//
-//}
+
 void RedirectionCommand::execute() {
 
 
@@ -450,6 +423,9 @@ void RedirectionCommand::execute() {
     if(this->redirectSign == ">"){
 
         int original_stdout_fd = dup(STDOUT_FILENO);
+        if(original_stdout_fd <0){
+            perror("smash error: dup failed");
+        }
         ofstream file;
         file.open(this->destFile, std::ios::trunc);
 
@@ -457,11 +433,6 @@ void RedirectionCommand::execute() {
             perror("smash error: open failed");
             return;
         }
-
-        //chmod(this->destFile.c_str(), 0655);
-
-
-
         if(cmd_s.compare("showpid") == 0){
             file << "smash pid is " << getpid() << endl;
             return;
@@ -500,22 +471,15 @@ void RedirectionCommand::execute() {
             }
             return;
         }
-
-
-
-
-
-
         system(this->fullCommand);
-
-
-
-
 
     }
     if (this->redirectSign == ">>"){
 
         int original_stdout_fd = dup(STDOUT_FILENO);
+        if(original_stdout_fd <0){
+            perror("smash error: dup failed");
+        }
         //ofstream file(this->destFile, std::ios::app);
         ofstream file;
         file.open(this->destFile, std::ios::app);
@@ -565,16 +529,6 @@ void RedirectionCommand::execute() {
 
 PipeCommand::PipeCommand(const char *cmd_line): Command(cmd_line)
 {
-//    string cmd_s = _trim(cmd_line);
-//    size_t check = cmd_s.find_first_of("&");
-//    if (check != string::npos){
-//        this->sign = "|&";
-//    }
-//    else {
-//        this->sign = "|";
-//        check = cmd_s.find_first_of("|");
-//    }
-
     char* args[21];
     _parseCommandLine(cmd_line,args);
     int index = 0;
@@ -598,24 +552,37 @@ PipeCommand::PipeCommand(const char *cmd_line): Command(cmd_line)
 
 }
 
-//void PipeCommand::execute() {}
+
 void PipeCommand::execute() {
     int fd[2];
-    pipe(fd);
+    int result = pipe(fd);
+    if(result < 0){
+        perror("smash error: pipe failed");
+    }
     ExternalCommand* readCmd = new ExternalCommand(this->readCommand.c_str());
     ExternalCommand* writeCmd = new ExternalCommand(this->writeCommand.c_str());
 
     if (this->writeCommand.compare("showpid") == 0 || this->writeCommand.compare("pwd") == 0) {
         int original_stdin_fd = dup(STDIN_FILENO);
-
+        if(original_stdin_fd <0){
+            perror("smash error: dup failed");
+        }
+        int result;
         pid_t pid1 = fork();
         if (pid1 == 0){
+            setpgrp();
             close(fd[0]);
             if (this->sign.compare("|") == 0) {
-                dup2(fd[1], STDOUT_FILENO);
+                result = dup2(fd[1], STDOUT_FILENO);
+                if(result < 0){
+                    perror("smash error: dup2 failed");
+                }
             }
             else if (this->sign.compare("|&") == 0) {
-                dup2(fd[1], STDERR_FILENO);
+                result = dup2(fd[1], STDERR_FILENO);
+                if(result < 0){
+                    perror("smash error: dup2 failed");
+                }
             }
 
             if (this->writeCommand.compare("showpid") == 0) {
@@ -633,12 +600,16 @@ void PipeCommand::execute() {
             int status;
             waitpid(pid1,&status,WUNTRACED);
             close(fd[1]);
-            dup2(fd[0], STDIN_FILENO);
+            result = dup2(fd[0], STDIN_FILENO);
+            if(result <0){
+                perror("smash error: dup2 failed");
+            }
             if (this->readCommand.compare("showpid") == 0 || this->readCommand.compare("pwd") == 0){
 
 
                 pid_t pid2 = fork();
                 if (pid2 == 0){
+                    setpgrp();
                     if (this->readCommand.compare("showpid") == 0) {
                         cout << "smash pid is " << getpid() << endl;
                     }
@@ -653,7 +624,10 @@ void PipeCommand::execute() {
                 else{
                     int status;
                     waitpid(pid2, &status, WUNTRACED);
-                    dup2(original_stdin_fd, STDIN_FILENO);
+                    result = dup2(original_stdin_fd, STDIN_FILENO);
+                    if(result <0){
+                        perror("smash error: dup2 failed");
+                    }
                     close(fd[0]);
                     close(original_stdin_fd);
                 }
@@ -663,7 +637,10 @@ void PipeCommand::execute() {
 
 
                 readCmd->execute();
-                dup2(original_stdin_fd, STDIN_FILENO);
+                result = dup2(original_stdin_fd, STDIN_FILENO);
+                if(result <0){
+                    perror("smash error: dup2 failed");
+                }
                 close(fd[0]);
                 close(original_stdin_fd);
 
@@ -677,11 +654,18 @@ void PipeCommand::execute() {
 
         pid_t pid1 = fork();
         if (pid1 == 0) {
+            setpgrp();
             close(fd[0]);
             if (this->sign.compare("|") == 0) {
-                dup2(fd[1], STDOUT_FILENO);
+                result = dup2(fd[1], STDOUT_FILENO);
+                if(result <0){
+                    perror("smash error: dup2 failed");
+                }
             } else if (this->sign.compare("|&") == 0) {
-                dup2(fd[1], STDERR_FILENO);
+                result = dup2(fd[1], STDERR_FILENO);
+                if(result <0){
+                    perror("smash error: dup2 failed");
+                }
             }
             close(fd[1]);
             writeCmd->execute();
@@ -689,10 +673,16 @@ void PipeCommand::execute() {
         }
         else{
             int original_stdin_fd = dup(STDIN_FILENO);
+            if(original_stdin_fd <0){
+                perror("smash error: dup failed");
+            }
             int status;
             waitpid(pid1, &status, WUNTRACED);
             close(fd[1]);
-            dup2(fd[0], STDIN_FILENO);
+            result = dup2(fd[0], STDIN_FILENO);
+            if(result <0){
+                perror("smash error: dup2 failed");
+            }
 
 
             if (this->readCommand.compare("showpid") == 0 || this->readCommand.compare("pwd") == 0){
@@ -700,6 +690,7 @@ void PipeCommand::execute() {
 
                 pid_t pid2 = fork();
                 if (pid2 == 0){
+                    setpgrp();
                     if (this->readCommand.compare("showpid") == 0) {
                         cout << "smash pid is " << getpid() << endl;
                     }
@@ -714,7 +705,10 @@ void PipeCommand::execute() {
                 else{
                     int status;
                     waitpid(pid2, &status, WUNTRACED);
-                    dup2(original_stdin_fd, STDIN_FILENO);
+                    result = dup2(original_stdin_fd, STDIN_FILENO);
+                    if(result <0){
+                        perror("smash error: dup2 failed");
+                    }
                     close(fd[0]);
                     close(original_stdin_fd);
                 }
@@ -724,7 +718,10 @@ void PipeCommand::execute() {
 
 
                 readCmd->execute();
-                dup2(original_stdin_fd, STDIN_FILENO);
+                result = dup2(original_stdin_fd, STDIN_FILENO);
+                if(result <0){
+                    perror("smash error: dup2 failed");
+                }
                 close(fd[0]);
                 close(original_stdin_fd);
 
@@ -732,13 +729,6 @@ void PipeCommand::execute() {
         }
     }
 }
-
-
-
-
-
-
-
 
 
 
@@ -858,9 +848,6 @@ void KillCommand::execute() {
     else {
         perror("smash error: kill");
     }
-
-
-
 }
 
 
@@ -869,18 +856,9 @@ void SmallShell::executeCommand(const char *cmd_line) {
     SmallShell::listOfJobs->removeFinishedJobs();
     Command* cmd = CreateCommand(cmd_line);
     cmd->execute();
-
-
-
-
-
-
 //  Please note that you must fork smash process for some commands (e.g., external commands....)
 }
-//ExternalCommand::ExternalCommand(const char *cmd_line): Command(cmd_line)
-//{
-//
-//}
+
 
 ExternalCommand::ExternalCommand(const char *cmdLine) : Command(cmdLine)
 {
@@ -897,14 +875,6 @@ bool ExternalCommand::isComplex() {
     return false;
 }
 
-//void ExternalCommand::execute() {
-//    std::time_t entry_time = time(nullptr);
-//    pid_t pid = getpid();
-//    JobsList::JobEntry jobToAdd(entry_time,cmd_line,pid);
-//    SmallShell::listOfJobs->JobsList::addJob(&jobToAdd);
-//}
-
-////
 void ExternalCommand::execute()
 {
 
@@ -916,7 +886,7 @@ void ExternalCommand::execute()
     if (this->isComplex()){
         pid_t pid = fork();
         if (pid == 0){
-
+            setpgrp();
             char *cmdLineToSend = const_cast<char*>(cmdLineToSendConst);
             char *args[] = {"/bin/bash","-c",cmdLineToSend, nullptr};
             execvp(args[0],args);
@@ -941,7 +911,6 @@ void ExternalCommand::execute()
     if(!this->isComplex()){
         pid_t pid = fork();
         if(pid > 0){
-            //cout << cmd_line << endl;
             if (!isBgCmd){ //foreground
                 int status;
                 JobsList::JobEntry cur_job = JobsList::JobEntry(entry_time,cmd_line,pid);
@@ -951,6 +920,7 @@ void ExternalCommand::execute()
             }
             else
             {
+                setpgrp();
                 JobsList::JobEntry jobToAdd(entry_time,cmd_line,pid);
                 SmallShell::listOfJobs->JobsList::addJob(&jobToAdd,false);
             }
@@ -1291,7 +1261,6 @@ BackgroundCommand::BackgroundCommand(const char *cmd_line, JobsList *jobs) : Bui
         plastJobId = 0;
         isPlastJobExist = false;
     }
-///////////////need to complete this //?
 }
 
 
