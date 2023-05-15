@@ -208,6 +208,10 @@ Command * SmallShell::CreateCommand(const char* cmd_line) {
     else if(firstWord.compare("timeout") == 0){
         return new TimeoutCommand(cmd_line);
     }
+    else if(firstWord.compare("setcore") == 0){
+        return new SetcoreCommand(cmd_line);
+    }
+
 
 
 
@@ -289,29 +293,40 @@ void ChmodCommand::execute() {
 
 SetcoreCommand::SetcoreCommand(const char *cmd_line): BuiltInCommand(cmd_line)
 {
+    this->isValid = true;
     int result = _parseCommandLine(cmd_line,this->args);
     if (result != 3){
         cerr<< "smash error: setcore: invalid arguments" << endl;
+        this->isValid = false;
+        return;
     }
     try {
         this->jobId = stoi(this->args[1]);
     }
     catch(const std::invalid_argument& e){
         cerr << "smash error: setcore: invalid aruments" << endl;
+        this->isValid = false;
+        return;
     }
     try {
         this->coreToSet = stoi(this->args[2]);
     }
     catch(const std::invalid_argument& e){
         cerr << "smash error: setcore: invalid aruments" << endl;
+        this->isValid = false;
+        return;
     }
 }
 
 void SetcoreCommand::execute()
 {
+    if(this->isValid == false){
+        return;
+    }
     JobsList::JobEntry* jobToSetCore = SmallShell::listOfJobs->getJobById(this->jobId);
     if(jobToSetCore == nullptr){
         cerr << "smash error: setcore: job-id <job-id> does not exist" << endl;
+        return;
     }
 
     cpu_set_t cpuToSet;
@@ -349,7 +364,6 @@ void GetFileTypeCommand::execute() {
         long size = ftell(file);
 
         if (S_ISREG(status.st_mode)) {
-            //temp.txt’s type is “regular file” and takes up 420 bytes
             cout << this->pathToFile << " type is “regular file” and takes up " << size<< " bytes"<<endl;
         } else if (S_ISDIR(status.st_mode)) {
             cout << this->pathToFile << " type is “directory” and takes up " << size<< " bytes" << endl;
@@ -848,6 +862,9 @@ void KillCommand::execute() {
     else {
         perror("smash error: kill");
     }
+
+
+
 }
 
 
@@ -856,9 +873,18 @@ void SmallShell::executeCommand(const char *cmd_line) {
     SmallShell::listOfJobs->removeFinishedJobs();
     Command* cmd = CreateCommand(cmd_line);
     cmd->execute();
+
+
+
+
+
+
 //  Please note that you must fork smash process for some commands (e.g., external commands....)
 }
-
+//ExternalCommand::ExternalCommand(const char *cmd_line): Command(cmd_line)
+//{
+//
+//}
 
 ExternalCommand::ExternalCommand(const char *cmdLine) : Command(cmdLine)
 {
@@ -875,6 +901,14 @@ bool ExternalCommand::isComplex() {
     return false;
 }
 
+//void ExternalCommand::execute() {
+//    std::time_t entry_time = time(nullptr);
+//    pid_t pid = getpid();
+//    JobsList::JobEntry jobToAdd(entry_time,cmd_line,pid);
+//    SmallShell::listOfJobs->JobsList::addJob(&jobToAdd);
+//}
+
+////
 void ExternalCommand::execute()
 {
 
@@ -1261,6 +1295,7 @@ BackgroundCommand::BackgroundCommand(const char *cmd_line, JobsList *jobs) : Bui
         plastJobId = 0;
         isPlastJobExist = false;
     }
+///////////////need to complete this //?
 }
 
 

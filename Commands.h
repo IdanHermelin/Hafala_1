@@ -232,6 +232,7 @@ class SetcoreCommand : public BuiltInCommand {
     char* args[21];
     int jobId;
     int coreToSet;
+    bool isValid;
 public:
     SetcoreCommand(const char* cmd_line);
     virtual ~SetcoreCommand() {}
