@@ -143,7 +143,7 @@ public:
     void printJobsList();
     void killAllJobs();
     void removeFinishedJobs();
-    JobEntry * getJobById(int jobId);
+    int  getJobById(int jobId);
     void removeJobById(int jobId);
     JobEntry * getLastJob(int* lastJobId);
     JobEntry *getLastStoppedJob(int *jobId);
@@ -220,6 +220,7 @@ public:
 
 class GetFileTypeCommand : public BuiltInCommand {
     std::string pathToFile;
+    bool isValid;
     // TODO: Add your data members
 public:
     GetFileTypeCommand(const char* cmd_line);
@@ -232,6 +233,7 @@ class SetcoreCommand : public BuiltInCommand {
     char* args[21];
     int jobId;
     int coreToSet;
+    bool isValid;
 public:
     SetcoreCommand(const char* cmd_line);
     virtual ~SetcoreCommand() {}
